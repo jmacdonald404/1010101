@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roland SH-101</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&family=Oswald:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --panel:         #2c2c2e;
+  --panel-dark:    #1c1c1e;
+  --panel-raised:  #343436;
+  --panel-sunken:  #202022;
+  --roland-red:    #c8191a;
+  --cream:         #ddd8c4;
+  --cream-dark:    #b8b09a;
+  --silver-hi:     #d8d8d8;
+  --silver-dark:   #707070;
+  --led-on:        #ff5500;
+  --led-off:       #2a1200;
+  --led-glow:      rgba(255,85,0,0.45);
+  --led-green:     #44cc44;
+  --led-blue:      #4499ff;
+  --label:         #e0ddd5;
+  --label-dim:     #888880;
+  --section-edge:  #484848;
+  --track:         #141416;
+  --key-white:     #ece8df;
+  --key-pressed:   #b8b49c;
+  --key-black:     #1a1a1c;
+}
+
+html, body {
+  min-height: 100vh;
+  background: #0e0e10;
+  background-image: radial-gradient(ellipse at 50% 0%, #1a1a20 0%, transparent 70%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 24px 16px 40px; overflow-x: auto;
+}
+
+.synth {
+  position: relative; width: max-content;
+  background: var(--panel);
+  border-radius: 10px 10px 5px 5px;
+  box-shadow:
+    0 0 0 1px #111, 0 0 0 3px #444, 0 0 0 4px #111,
+    0 30px 80px rgba(0,0,0,0.95),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+  user-select: none;
+}
+.synth::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: repeating-linear-gradient(180deg, transparent 0, transparent 1px,
+    rgba(255,255,255,0.013) 1px, rgba(255,255,255,0.013) 2px);
+  pointer-events: none; z-index: 100;
+}
+
+/* BRAND BAR */
+.brand-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 22px; height: 46px;
+  background: linear-gradient(180deg, #1a1a1c 0%, #141416 100%);
+  border-bottom: 4px solid var(--roland-red);
+  border-radius: 10px 10px 0 0; position: relative; z-index: 10;
+}
+.brand-left { display: flex; align-items: baseline; gap: 12px; }
+.brand-roland {
+  font-family:'Oswald',sans-serif; font-weight:500; font-size:10px;
+  letter-spacing:6px; color:var(--roland-red); text-transform:uppercase;
+}
+.brand-model {
+  font-family:'Oswald',sans-serif; font-weight:300; font-size:28px;
+  letter-spacing:1px; color:var(--label); line-height:1;
+}
+.brand-model strong { font-weight:500; color:#fff; }
+.brand-tagline {
+  font-family:'Barlow Condensed',sans-serif; font-weight:300; font-size:10px;
+  letter-spacing:3px; color:var(--label-dim); text-transform:uppercase; align-self:center;
+}
+.power-section { display:flex; align-items:center; gap:8px; }
+.power-label {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px;
+  letter-spacing:2px; color:var(--label-dim); text-transform:uppercase;
+}
+.led-dot {
+  width:9px; height:9px; border-radius:50%;
+  background:var(--led-off); border:1px solid #111;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.1); transition:all 0.1s;
+}
+.led-dot.on {
+  background:var(--led-on);
+  box-shadow:0 0 6px var(--led-glow),0 0 14px var(--led-glow),inset 0 1px 0 rgba(255,200,100,0.4);
+}
+
+/* STATUS STRIP */
+.status-strip {
+  display:flex; align-items:center;
+  background:#111113; border-bottom:1px solid #2a2a2c;
+  height:28px; padding:0 16px; position:relative; z-index:9;
+}
+.status-cell {
+  display:flex; align-items:center; gap:7px;
+  padding:0 14px; height:100%; border-right:1px solid #222224;
+}
+.status-cell:first-child { padding-left:0; }
+.status-cell.right { border-right:none; margin-left:auto; }
+.s-icon {
+  width:7px; height:7px; border-radius:50%;
+  background:#1a1a1a; border:1px solid #333; flex-shrink:0; transition:all 0.15s;
+}
+.s-icon.red   { background:var(--led-on); box-shadow:0 0 5px var(--led-glow); border-color:#cc3300; }
+.s-icon.green { background:var(--led-green); box-shadow:0 0 5px rgba(68,204,68,0.5); border-color:#228822; }
+.s-icon.blue  { background:var(--led-blue); box-shadow:0 0 5px rgba(68,153,255,0.5); border-color:#225599; }
+@keyframes notepulse { 0%{transform:scale(1.9)} 100%{transform:scale(1)} }
+.s-icon.pulse { animation:notepulse 0.18s ease-out forwards; }
+.s-label {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:2px;
+  color:var(--label-dim); text-transform:uppercase; white-space:nowrap;
+}
+.s-val {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  color:var(--label); white-space:nowrap;
+}
+.s-val.dim    { color:var(--label-dim); }
+.s-val.orange { color:var(--led-on); }
+.s-val.green  { color:var(--led-green); }
+.note-bar {
+  width:28px; height:8px; background:var(--track);
+  border-radius:4px; overflow:hidden; border:1px solid #222;
+}
+.note-bar-fill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,var(--led-on),#ffaa00);
+  border-radius:3px; transition:width 0.05s ease-out;
+}
+
+/* MAIN PANEL */
+.panel {
+  display:flex; flex-direction:row; gap:0;
+  padding:16px 14px 14px; align-items:flex-start;
+  position:relative; z-index:1;
+}
+
+/* SECTION */
+.section {
+  display:flex; flex-direction:column; gap:10px;
+  position:relative; padding:10px 10px 8px;
+  border:1px solid var(--section-edge); border-radius:3px;
+  background:linear-gradient(180deg,var(--panel-raised) 0%,var(--panel) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.section+.section { margin-left:8px; }
+.sec-title {
+  font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:8.5px;
+  letter-spacing:2.5px; color:var(--label); text-transform:uppercase; text-align:center;
+  position:absolute; top:-8px; left:50%; transform:translateX(-50%);
+  white-space:nowrap; background:var(--panel-raised); padding:0 6px; line-height:14px;
+}
+.sec-title.red  { color:var(--roland-red); }
+.sec-title.blue { color:var(--led-blue); }
+.sec-title.ylw  { color:#ccaa22; }
+.row { display:flex; flex-direction:row; align-items:flex-end; gap:6px; margin-top:6px; }
+.vdiv {
+  width:1px; align-self:stretch; margin:0 4px; flex-shrink:0;
+  background:linear-gradient(180deg,transparent,var(--section-edge),transparent);
+}
+
+/* SLIDERS */
+.sw { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.slbl {
+  font-family:'Barlow Condensed',sans-serif; font-size:8.5px; letter-spacing:1px;
+  color:var(--label-dim); text-transform:uppercase; text-align:center;
+  line-height:1.2; white-space:nowrap;
+}
+.slbl.br { color:var(--label); }
+.strk {
+  width:14px; height:90px; background:var(--track); border-radius:2px;
+  border:1px solid #111; box-shadow:inset 0 1px 4px rgba(0,0,0,0.8);
+  position:relative; display:flex; align-items:center; justify-content:center;
+  overflow:visible;
+}
+.strk::after {
+  content:''; position:absolute; left:2px; right:2px;
+  height:1px; background:rgba(255,255,255,0.07); top:50%;
+  pointer-events:none;
+}
+.strk.sm { height:60px; }
+
+input[type="range"].vs {
+  -webkit-appearance:none; appearance:none;
+  position:absolute;
+  width:82px; height:20px;
+  transform:rotate(-90deg);
+  background:transparent; cursor:pointer; outline:none;
+  margin:0; padding:0;
+}
+input[type="range"].vs.sm {
+  width:52px;
+}
+input[type="range"].vs::-webkit-slider-runnable-track {
+  height:3px; width:100%; background:var(--track);
+  border-radius:2px; border:none;
+}
+input[type="range"].vs::-webkit-slider-thumb {
+  -webkit-appearance:none; appearance:none;
+  /* before rotation: narrow width, tall height
+     after -90deg:    appears as wide cap, short height — the cream slider look */
+  width:11px; height:22px;
+  background:linear-gradient(180deg,var(--cream) 0%,var(--cream-dark) 60%,#8a8070 100%);
+  border-radius:2px; border:none; margin-top:-9px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.25);
+  cursor:grab;
+}
+input[type="range"].vs:active::-webkit-slider-thumb {
+  cursor:grabbing;
+  background:linear-gradient(180deg,#eae4d2 0%,#c8c2ae 60%,#7a7060 100%);
+}
+/* Firefox */
+input[type="range"].vs::-moz-range-track {
+  height:3px; background:var(--track); border-radius:2px;
+}
+input[type="range"].vs::-moz-range-thumb {
+  width:11px; height:22px; border-radius:2px; border:none;
+  background:linear-gradient(180deg,var(--cream) 0%,var(--cream-dark) 60%,#8a8070 100%);
+  box-shadow:0 2px 4px rgba(0,0,0,0.6);
+  cursor:grab;
+}
+
+.vtag {
+  font-family:'Share Tech Mono',monospace; font-size:8.5px; color:var(--led-on);
+  text-align:center; min-width:30px; height:12px; opacity:0; transition:opacity 0.3s;
+}
+.vtag.show { opacity:1; }
+
+/* BUTTONS */
+.grp-lbl {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:1px;
+  color:var(--label-dim); text-transform:uppercase; text-align:center;
+}
+.brow { display:flex; gap:2px; }
+.sbtn {
+  font-family:'Barlow Condensed',sans-serif; font-size:8px; font-weight:600;
+  letter-spacing:1px; text-transform:uppercase; color:var(--label-dim);
+  background:var(--panel-sunken); border:1px solid #111; border-radius:2px;
+  padding:4px 5px; cursor:pointer; white-space:nowrap;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04); transition:all 0.07s;
+}
+.sbtn:hover { color:var(--label); background:#2a2a2c; }
+.sbtn.on { color:#fff; border-color:rgba(200,190,160,0.3);
+  box-shadow:0 0 0 1px rgba(200,190,160,0.15),inset 0 1px 0 rgba(255,255,255,0.08); }
+.sbtn.on::before {
+  content:''; display:inline-block; width:4px; height:4px; border-radius:50%;
+  background:var(--led-on); box-shadow:0 0 4px var(--led-glow);
+  margin-right:4px; vertical-align:middle; position:relative; top:-1px;
+}
+
+/* TOGGLE */
+.tw { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.tlbl {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:1px;
+  color:var(--label-dim); text-transform:uppercase;
+}
+.tsw {
+  width:30px; height:16px; background:var(--panel-sunken);
+  border:1px solid #111; border-radius:8px; position:relative;
+  cursor:pointer; box-shadow:inset 0 1px 3px rgba(0,0,0,0.6); transition:background 0.15s;
+}
+.tsw.on { background:#1a2e1a; border-color:#2a4a2a; }
+.tsw::after {
+  content:''; width:12px; height:12px; border-radius:50%;
+  background:linear-gradient(180deg,var(--silver-hi) 0%,var(--silver-dark) 100%);
+  position:absolute; top:1px; left:1px; transition:left 0.12s,background 0.12s;
+  box-shadow:0 1px 2px rgba(0,0,0,0.5);
+}
+.tsw.on::after {
+  left:15px;
+  background:linear-gradient(180deg,#88cc88 0%,#448844 100%);
+  box-shadow:0 0 4px rgba(100,220,100,0.4);
+}
+
+/* KEYBOARD */
+.kb-section {
+  background:linear-gradient(180deg,#222224 0%,#1a1a1c 100%);
+  border-top:1px solid #111; border-radius:0 0 5px 5px;
+  padding:10px 14px 12px; position:relative; z-index:1;
+  width: 100%;
+}
+.kb-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.kb-lbl {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px;
+  letter-spacing:3px; color:var(--label-dim); text-transform:uppercase;
+}
+.kb-ctrls { display:flex; align-items:center; gap:16px; }
+.keyboard { display:flex; position:relative; height:80px; }
+.kw {
+  width:26px; height:80px;
+  background:linear-gradient(180deg,var(--key-white) 0%,#d8d4cc 100%);
+  border:1px solid #999; border-top:none; border-radius:0 0 3px 3px;
+  cursor:pointer; position:relative; z-index:1; flex-shrink:0;
+  box-shadow:0 3px 5px rgba(0,0,0,0.4); transition:background 0.04s;
+}
+.kw:hover { background:linear-gradient(180deg,#f5f2ec 0%,#e8e4da 100%); }
+.kw.pressed { background:linear-gradient(180deg,var(--key-pressed) 0%,#a8a498 100%);
+  box-shadow:0 1px 2px rgba(0,0,0,0.4),inset 0 2px 4px rgba(0,0,0,0.2);
+  transform:translateY(2px); }
+.kb {
+  width:16px; height:50px;
+  background:linear-gradient(180deg,#2a2a2c 0%,var(--key-black) 100%);
+  border-radius:0 0 2px 2px; cursor:pointer;
+  position:absolute; z-index:2; top:0;
+  box-shadow:0 4px 8px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06);
+  transition:background 0.04s;
+}
+.kb:hover { background:linear-gradient(180deg,#383838 0%,#111 100%); }
+.kb.pressed { background:linear-gradient(180deg,#1a1a1c 0%,#0a0a0c 100%);
+  box-shadow:0 2px 4px rgba(0,0,0,0.7); transform:translateY(2px); }
+
+/* BOOT */
+.boot {
+  position:fixed; inset:0; background:rgba(0,0,0,0.93);
+  display:flex; align-items:center; justify-content:center;
+  z-index:999; cursor:pointer; backdrop-filter:blur(4px);
+}
+.boot h2 {
+  font-family:'Oswald',sans-serif; font-weight:300; font-size:14px;
+  letter-spacing:6px; color:var(--label); text-transform:uppercase; margin-bottom:10px;
+  text-align:center;
+}
+.boot p {
+  font-family:'Share Tech Mono',monospace; font-size:11px;
+  color:var(--label-dim); letter-spacing:2px; text-align:center;
+}
+.blink { animation:blink 1s step-end infinite; color:var(--led-on); }
+@keyframes blink { 50%{opacity:0} }
+.footnote {
+  margin-top:14px; font-family:'Barlow Condensed',sans-serif; font-size:9px;
+  letter-spacing:2px; color:#2a2a2c; text-transform:uppercase; text-align:center;
+}
+</style>
+</head>
+<body>
+
+<div class="boot" id="boot">
+  <div>
+    <h2>Roland SH-101</h2>
+    <p class="blink">▶ click anywhere to power on</p>
+  </div>
+</div>
+
+<div class="synth">
+
+  <!-- BRAND BAR -->
+  <div class="brand-bar">
+    <div class="brand-left">
+      <span class="brand-roland">Roland</span>
+      <div class="brand-model"><strong>SH</strong>-101</div>
+      <span class="brand-tagline">Synthesizer</span>
+    </div>
+    <div class="power-section">
+      <span class="power-label">Power</span>
+      <div class="led-dot on"></div>
+    </div>
+  </div>
+
+  <!-- STATUS STRIP -->
+  <div class="status-strip">
+    <div class="status-cell">
+      <div class="s-icon" id="si-audio"></div>
+      <span class="s-label">Audio</span>
+      <span class="s-val dim" id="sv-audio">—</span>
+    </div>
+    <div class="status-cell">
+      <div class="s-icon" id="si-midi"></div>
+      <span class="s-label">MIDI</span>
+      <span class="s-val dim" id="sv-midi">—</span>
+    </div>
+    <div class="status-cell">
+      <div class="s-icon" id="si-note"></div>
+      <span class="s-label">Note</span>
+      <span class="s-val orange" id="sv-note" style="min-width:34px">—</span>
+      <div class="note-bar"><div class="note-bar-fill" id="nbfill"></div></div>
+    </div>
+    <div class="status-cell right">
+      <span class="s-label">Device</span>
+      <span class="s-val dim" id="sv-device">No MIDI</span>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div class="panel">
+
+    <!-- PORTAMENTO -->
+    <div class="section" style="min-width:82px">
+      <span class="sec-title">Portamento</span>
+      <div class="row" style="justify-content:center">
+        <div class="sw">
+          <div class="slbl">Long</div>
+          <div class="strk"><input type="range" class="vs" id="glide" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vgl">0</div>
+          <div class="slbl br">Time</div>
+        </div>
+      </div>
+      <div class="tw" style="margin-top:2px">
+        <div class="tsw" id="tgl"></div>
+        <div class="tlbl">On</div>
+      </div>
+    </div>
+
+    <!-- VCO -->
+    <div class="section" style="min-width:292px">
+      <span class="sec-title red">VCO</span>
+      <div style="position:absolute;top:8px;right:8px">
+        <div class="tsw on" id="tvco" title="VCO Enable/Bypass"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div>
+            <div class="grp-lbl" style="margin-bottom:4px">Sub Oct</div>
+            <div class="brow" style="flex-direction:column;gap:3px">
+              <button class="sbtn on" data-g="sub" data-v="off">Off</button>
+              <button class="sbtn" data-g="sub" data-v="oct1">−1 Oct</button>
+              <button class="sbtn" data-g="sub" data-v="oct2">−2 Oct</button>
+            </div>
+          </div>
+        </div>
+        <div class="vdiv"></div>
+        <div class="row" style="align-items:flex-end;gap:10px">
+          <div class="sw">
+            <div class="slbl">Full</div>
+            <div class="strk"><input type="range" class="vs" id="saw-level" min="0" max="100" value="100"></div>
+            <div class="vtag" id="vsaw">100%</div>
+            <div class="slbl br">Saw</div>
+          </div>
+          <div class="sw">
+            <div class="slbl">Full</div>
+            <div class="strk"><input type="range" class="vs" id="pulse-level" min="0" max="100" value="0"></div>
+            <div class="vtag" id="vpls">0%</div>
+            <div class="slbl br">Pulse</div>
+          </div>
+          <div class="sw">
+            <div class="slbl">Full</div>
+            <div class="strk"><input type="range" class="vs" id="sub-level" min="0" max="100" value="0"></div>
+            <div class="vtag" id="vsubl">0%</div>
+            <div class="slbl br">Sub</div>
+          </div>
+          <div class="vdiv" style="height:70px;align-self:center"></div>
+          <div class="sw">
+            <div class="slbl">More</div>
+            <div class="strk"><input type="range" class="vs" id="noise-level" min="0" max="100" value="0"></div>
+            <div class="vtag" id="vnl">0%</div>
+            <div class="slbl br">Noise</div>
+          </div>
+          <div class="sw">
+            <div class="slbl">Wide</div>
+            <div class="strk"><input type="range" class="vs" id="pulse-width" min="1" max="99" value="50"></div>
+            <div class="vtag" id="vpw">50%</div>
+            <div class="slbl br">P.Width</div>
+          </div>
+          <div class="sw">
+            <div class="slbl">More</div>
+            <div class="strk"><input type="range" class="vs" id="lfo-pwm" min="0" max="100" value="0"></div>
+            <div class="vtag" id="vlpwm">0%</div>
+            <div class="slbl br">PWM</div>
+          </div>
+          <div class="sw">
+            <div class="slbl">More</div>
+            <div class="strk"><input type="range" class="vs" id="lfo-pitch" min="0" max="100" value="0"></div>
+            <div class="vtag" id="vlpit">0%</div>
+            <div class="slbl br">Pitch</div>
+          </div>
+          <div class="vdiv" style="height:70px;align-self:center"></div>
+          <div class="sw">
+            <div class="slbl">+5</div>
+            <div class="strk"><input type="range" class="vs" id="oct-shift" min="-5" max="5" step="1" value="0"></div>
+            <div class="vtag" id="voct">0</div>
+            <div class="slbl br">Octave</div>
+          </div>
+          <div class="sw">
+            <div class="slbl">+100</div>
+            <div class="strk"><input type="range" class="vs" id="fine-tune" min="-100" max="100" step="1" value="0"></div>
+            <div class="vtag" id="vfine">0¢</div>
+            <div class="slbl br">Fine</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VCF -->
+    <div class="section" style="min-width:230px">
+      <span class="sec-title red">VCF</span>
+      <div style="position:absolute;top:8px;right:8px">
+        <div class="tsw on" id="tvcf" title="VCF Enable/Bypass"></div>
+      </div>
+      <div class="row" style="margin-top:6px;gap:10px">
+        <div class="sw">
+          <div class="slbl">Open</div>
+          <div class="strk"><input type="range" class="vs" id="cutoff" min="0" max="100" value="45"></div>
+          <div class="vtag" id="vco2">420Hz</div>
+          <div class="slbl br">Cutoff</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">High</div>
+          <div class="strk"><input type="range" class="vs" id="resonance" min="0" max="100" value="20"></div>
+          <div class="vtag" id="vres">0.19</div>
+          <div class="slbl br">Reso</div>
+        </div>
+        <div class="vdiv"></div>
+        <div class="sw">
+          <div class="slbl">More</div>
+          <div class="strk"><input type="range" class="vs" id="env-mod" min="0" max="100" value="50"></div>
+          <div class="vtag" id="vemod">50%</div>
+          <div class="slbl br">Env Mod</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Full</div>
+          <div class="strk"><input type="range" class="vs" id="key-track" min="0" max="100" value="50"></div>
+          <div class="vtag" id="vktr">50%</div>
+          <div class="slbl br">Key Trk</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">More</div>
+          <div class="strk"><input type="range" class="vs" id="lfo-cutoff" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vlco">0%</div>
+          <div class="slbl br">LFO</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VCA -->
+    <div class="section" style="min-width:88px">
+      <span class="sec-title red">VCA</span>
+      <div style="position:absolute;top:8px;right:8px">
+        <div class="tsw on" id="tvca" title="VCA Enable/Bypass"></div>
+      </div>
+      <div class="row" style="margin-top:6px;justify-content:center">
+        <div class="sw">
+          <div class="slbl">High</div>
+          <div class="strk"><input type="range" class="vs" id="volume" min="0" max="100" value="70"></div>
+          <div class="vtag" id="vvol">70%</div>
+          <div class="slbl br">Level</div>
+        </div>
+      </div>
+      <div style="margin-top:6px">
+        <div class="grp-lbl" style="margin-bottom:3px">Mode</div>
+        <div class="brow" style="flex-direction:column;gap:2px">
+          <button class="sbtn on" data-g="vca-mode" data-v="env">Env</button>
+          <button class="sbtn" data-g="vca-mode" data-v="gate">Gate</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENVELOPE -->
+    <div class="section" style="min-width:200px">
+      <span class="sec-title ylw">Envelope</span>
+      <div style="position:absolute;top:8px;right:8px">
+        <div class="tsw on" id="tenv" title="Envelope Enable/Bypass"></div>
+      </div>
+      <div class="row" style="margin-top:6px;gap:12px">
+        <div class="sw">
+          <div class="slbl">Long</div>
+          <div class="strk"><input type="range" class="vs" id="attack" min="0" max="100" value="2"></div>
+          <div class="vtag" id="vatk">2ms</div>
+          <div class="slbl br">Attack</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Long</div>
+          <div class="strk"><input type="range" class="vs" id="decay" min="0" max="100" value="35"></div>
+          <div class="vtag" id="vdcy">220ms</div>
+          <div class="slbl br">Decay</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">High</div>
+          <div class="strk"><input type="range" class="vs" id="sustain" min="0" max="100" value="70"></div>
+          <div class="vtag" id="vsus">0.70</div>
+          <div class="slbl br">Sustain</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Long</div>
+          <div class="strk"><input type="range" class="vs" id="release" min="0" max="100" value="25"></div>
+          <div class="vtag" id="vrel">300ms</div>
+          <div class="slbl br">Release</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LFO -->
+    <div class="section" style="min-width:140px">
+      <span class="sec-title blue">LFO</span>
+      <div style="position:absolute;top:8px;right:8px">
+        <div class="tsw on" id="tlfo" title="LFO Enable/Bypass"></div>
+      </div>
+      <div style="margin-top:6px">
+        <div class="grp-lbl" style="margin-bottom:4px">Waveform</div>
+        <div class="brow" style="flex-wrap:wrap;gap:2px;max-width:118px">
+          <button class="sbtn on" data-g="lfo-wave" data-v="triangle">Tri</button>
+          <button class="sbtn" data-g="lfo-wave" data-v="square">Sqr</button>
+          <button class="sbtn" data-g="lfo-wave" data-v="saw">Saw</button>
+          <button class="sbtn" data-g="lfo-wave" data-v="sh">S&amp;H</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;justify-content:center">
+        <div class="sw">
+          <div class="slbl">Fast</div>
+          <div class="strk"><input type="range" class="vs" id="lfo-rate" min="0" max="100" value="25"></div>
+          <div class="vtag show" id="vlrat">2.00Hz</div>
+          <div class="slbl br">Rate</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARPEGGIO -->
+    <div class="section" style="min-width:160px">
+      <span class="sec-title">Arpeggio</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <div class="tlbl">Enable</div>
+        <div class="tsw" id="tarp"></div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="grp-lbl" style="margin-bottom:4px">Pattern</div>
+        <div class="brow" style="flex-direction:column;gap:2px">
+          <button class="sbtn on" data-g="arp-pat" data-v="up">Up</button>
+          <button class="sbtn" data-g="arp-pat" data-v="down">Down</button>
+          <button class="sbtn" data-g="arp-pat" data-v="updown">Up / Dn</button>
+          <button class="sbtn" data-g="arp-pat" data-v="random">Random</button>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="grp-lbl" style="margin-bottom:4px">Division</div>
+        <div class="brow" style="gap:2px">
+          <button class="sbtn" data-g="arp-div" data-v="8">8th</button>
+          <button class="sbtn on" data-g="arp-div" data-v="16">16th</button>
+          <button class="sbtn" data-g="arp-div" data-v="32">32nd</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+        <div class="grp-lbl">Oct</div>
+        <div class="brow" style="gap:2px">
+          <button class="sbtn on" data-g="arp-oct" data-v="1">1</button>
+          <button class="sbtn" data-g="arp-oct" data-v="2">2</button>
+        </div>
+      </div>
+      <div style="margin-top:8px">
+        <div class="grp-lbl" style="margin-bottom:4px">Tempo</div>
+        <div class="row" style="justify-content:center">
+          <div class="sw">
+            <div class="slbl">Fast</div>
+            <div class="strk sm"><input type="range" class="vs sm" id="arp-bpm" min="0" max="100" value="45"></div>
+            <div class="vtag show" id="vbpm">120 bpm</div>
+            <div class="slbl br">BPM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /panel -->
+
+  <!-- KEYBOARD -->
+  <div class="kb-section">
+    <div class="kb-topbar">
+      <span class="kb-lbl">32 Key · C2–G4</span>
+      <div class="kb-ctrls">
+<div style="display:flex;align-items:center;gap:6px">
+          <span class="kb-lbl">Computer KB</span>
+          <div class="tsw on" id="tkb"></div>
+        </div>
+      </div>
+    </div>
+    <div class="keyboard" id="keyboard"></div>
+  </div>
+
+</div><!-- /synth -->
+
+<div class="footnote">Web Audio API · Huovilainen Ladder Filter · PolyBLEP VCO · 2× Oversampled</div>
+
+<script type="module">
+import { SH101 } from './sh101-node.js';
+
+// ─ State ────────────────────────────────────────────────────────
+let synth = null, audioCtx = null, midiAccess = null;
+let octave = 4, kbEnabled = true, glideOn = false, arpOn = false;
+let noteTimeout = null;
+const pressedKB = new Set();
+const heldMouse = new Map();
+
+// ─ Status helpers ────────────────────────────────────────────────
+function setStatus(siId, svId, iconCls, text, valCls = '') {
+  document.getElementById(siId).className = 's-icon ' + iconCls;
+  const sv = document.getElementById(svId);
+  sv.textContent = text;
+  sv.className = 's-val ' + valCls;
+}
+
+function flashNote(midi) {
+  const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  document.getElementById('sv-note').textContent = NAMES[midi % 12] + (Math.floor(midi/12)-1);
+  const icon = document.getElementById('si-note');
+  icon.className = 's-icon red';
+  icon.classList.remove('pulse'); void icon.offsetWidth; icon.classList.add('pulse');
+  document.getElementById('nbfill').style.width = '100%';
+  clearTimeout(noteTimeout);
+}
+function dimNote() {
+  noteTimeout = setTimeout(() => {
+    document.getElementById('si-note').className = 's-icon';
+    document.getElementById('sv-note').textContent = '—';
+    document.getElementById('nbfill').style.width = '0%';
+  }, 180);
+}
+
+function updateMidi() {
+  if (!midiAccess) { setStatus('si-midi','sv-midi','','Unavailable','dim'); return; }
+  const inputs = [...midiAccess.inputs.values()].filter(i => i.name.substr(0,1) !== 'M');
+  if (!inputs.length) {
+    setStatus('si-midi','sv-midi','','No devices','dim');
+    document.getElementById('sv-device').textContent = 'No MIDI';
+    return;
+  }
+  setStatus('si-midi','sv-midi','green', inputs.length + ' device' + (inputs.length>1?'s':''), 'green');
+  const name = inputs[0].name || 'Unknown';
+  document.getElementById('sv-device').textContent = name.length > 22 ? name.slice(0,20)+'…' : name;
+  document.getElementById('sv-device').className = 's-val';
+}
+
+// ─ Boot ─────────────────────────────────────────────────────────
+document.getElementById('boot').addEventListener('click', async () => {
+  document.getElementById('boot').style.display = 'none';
+
+  audioCtx = new AudioContext({ sampleRate: 44100, latencyHint: 'interactive' });
+  // explicitly resume — new AudioContext() may start suspended even inside a click handler
+  await audioCtx.resume();
+  setStatus('si-audio','sv-audio','red', audioCtx.state, 'orange');
+  audioCtx.onstatechange = () => {
+    const running = audioCtx.state === 'running';
+    setStatus('si-audio','sv-audio', running ? 'red' : '', audioCtx.state, running ? 'orange' : 'dim');
+  };
+
+  try {
+    console.log('[DEBUG] Creating SH101 instance...');
+    synth = new SH101(audioCtx);
+    console.log('[DEBUG] Initializing SH101...');
+    await synth.init();
+    console.log('[DEBUG] SH101 initialized successfully');
+    console.log('[DEBUG] AudioWorklet node:', synth.node);
+    console.log('[DEBUG] Available parameters:', [...synth.node.parameters.keys()]);
+    
+    synth.onNoteOn  = (n) => { console.log('[SH101] noteOn', n); flashNote(n); };
+    synth.onNoteOff = ()  => dimNote();
+    applyAll();
+    console.log('[DEBUG] All parameters applied');
+    setStatus('si-audio','sv-audio','red','Running','orange');
+  } catch(err) {
+    console.error('SH101 init error:', err);
+    console.error('Stack trace:', err.stack);
+    setStatus('si-audio','sv-audio','','Error','dim');
+    document.getElementById('sv-audio').title = err.message;
+    return;
+  }
+
+  // MIDI
+  if (navigator.requestMIDIAccess) {
+    try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    updateMidi();
+    for (const inp of midiAccess.inputs.values())
+      if (inp.name.substr(0,1) !== 'M') inp.onmidimessage = onMidi;
+    midiAccess.onstatechange = (e) => {
+      updateMidi();
+      if (e.port.type === 'input' && e.port.state === 'connected' && e.port.name.substr(0,1) !== 'M')
+        e.port.onmidimessage = onMidi;
+    };
+  } catch(e) {
+      setStatus('si-midi','sv-midi','','Denied','dim');
+    }
+  } else {
+    setStatus('si-midi','sv-midi','','Unsupported','dim');
+  }
+}, { once: true });
+
+// ─ MIDI ─────────────────────────────────────────────────────────
+function onMidi({ data }) {
+  const [st, note, vel] = data;
+  const cmd = st & 0xf0;
+  if (cmd === 0x90 && vel > 0) trigger(note, vel/127);
+  if (cmd === 0x80 || (cmd === 0x90 && vel === 0)) release(note);
+  if (cmd === 0xb0) {
+    const pct = Math.round(vel/127*100);
+    const set = (id) => { const e=document.getElementById(id); if(e){e.value=pct;e.dispatchEvent(new Event('input'));} };
+    ({74:()=>set('cutoff'), 71:()=>set('resonance'), 73:()=>set('attack'),
+      75:()=>set('decay'),  7: ()=>set('volume'),    5: ()=>set('glide')}[note] || (()=>{}))();
+  }
+}
+
+// ─ Note on/off ──────────────────────────────────────────────────
+function trigger(midi, vel=1) { if (synth) synth.noteOn(midi, vel); }
+function release(midi) {
+  if (synth) synth.noteOff(midi);
+  document.querySelector(`.keyboard [data-midi="${midi}"]`)?.classList.remove('pressed');
+}
+
+// ─ Init params ──────────────────────────────────────────────────
+function applyAll() {
+  if (!synth) return;
+  synth.setCutoff(gv('cutoff')/100);
+  synth.setResonance(gv('resonance')/100);
+  synth.setAttack(gv('attack')/100);
+  synth.setDecay(gv('decay')/100);
+  synth.set('sustain', gv('sustain')/100);
+  synth.setRelease(gv('release')/100);
+  synth.set('envModAmt',   gv('env-mod')/100);
+  synth.set('keyTracking', gv('key-track')/100);
+  synth.set('volume',      gv('volume')/100);
+  synth.set('sawLevel',    gv('saw-level')/100);
+  synth.set('pulseLevel',  gv('pulse-level')/100);
+  const subMode = document.querySelector('.sbtn[data-g="sub"].on')?.dataset.v;
+  synth.set('subLevel',    subMode === 'off' ? 0 : gv('sub-level')/100);
+  synth.set('noiseLevel',  gv('noise-level')/100);
+  synth.set('pulseWidth',  gv('pulse-width')/100);
+  synth.set('octaveShift', gv('oct-shift'));
+  synth.set('fineTune',    gv('fine-tune'));
+  synth.set('lfoPWMAmt',   gv('lfo-pwm')/100);
+  synth.set('lfoPitchAmt', gv('lfo-pitch')/100);
+  synth.set('lfoCutoffAmt',gv('lfo-cutoff')/100);
+  synth.set('lfoRate',     lfoHz(gv('lfo-rate')/100));
+  synth.arp.setBPM(bpmVal(gv('arp-bpm')/100));
+}
+const gv = id => parseFloat(document.getElementById(id).value);
+
+// ─ Curves ───────────────────────────────────────────────────────
+const lfoHz  = v => 0.05 * Math.pow(600, v);
+const bpmVal = v => Math.round(40 + v*220);
+const envMs  = v => Math.round(Math.pow(2000, v));
+const coDisp = v => { const hz=Math.round(20*Math.pow(900,v)); return hz>=1000?(hz/1000).toFixed(1)+'kHz':hz+'Hz'; };
+
+// ─ Slider binding ───────────────────────────────────────────────
+function bindS(id, fn, dispId, fmt) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value)/100;
+    if (synth) fn(v);
+    if (dispId) flash(dispId, fmt(v));
+  });
+  if (dispId) document.getElementById(dispId).textContent = fmt(parseFloat(el.value)/100);
+}
+function flash(id, txt) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = txt; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('show'), 1600);
+}
+
+bindS('cutoff',     v=>synth.setCutoff(v),          'vco2', coDisp);
+bindS('resonance',  v=>synth.setResonance(v),        'vres', v=>(v*0.95).toFixed(2));
+bindS('attack',     v=>synth.setAttack(v),           'vatk', v=>envMs(v)+'ms');
+bindS('decay',      v=>synth.setDecay(v),            'vdcy', v=>envMs(v)+'ms');
+bindS('sustain',    v=>synth.set('sustain',v),       'vsus', v=>v.toFixed(2));
+bindS('release',    v=>synth.setRelease(v),          'vrel', v=>envMs(v)+'ms');
+bindS('env-mod',    v=>synth.set('envModAmt',v),     'vemod',v=>Math.round(v*100)+'%');
+bindS('key-track',  v=>synth.set('keyTracking',v),   'vktr', v=>Math.round(v*100)+'%');
+bindS('volume',     v=>synth.set('volume',v),        'vvol', v=>Math.round(v*100)+'%');
+bindS('saw-level',   v=>synth.set('sawLevel',v),     'vsaw', v=>Math.round(v*100)+'%');
+bindS('pulse-level', v=>synth.set('pulseLevel',v),   'vpls', v=>Math.round(v*100)+'%');
+document.getElementById('sub-level').addEventListener('input', function() {
+  const v = parseFloat(this.value)/100;
+  const subActive = document.querySelector('.sbtn[data-g="sub"].on')?.dataset.v !== 'off';
+  if (synth && subActive) synth.set('subLevel', v);
+  flash('vsubl', Math.round(v*100)+'%');
+});
+bindS('noise-level',v=>synth.set('noiseLevel',v),    'vnl',  v=>Math.round(v*100)+'%');
+bindS('pulse-width',v=>synth.set('pulseWidth',Math.max(0.01,Math.min(0.99,v))),'vpw',v=>Math.round(v*100)+'%');
+bindS('lfo-pwm',    v=>synth.set('lfoPWMAmt',v),     'vlpwm',v=>Math.round(v*100)+'%');
+bindS('lfo-pitch',  v=>synth.set('lfoPitchAmt',v),   'vlpit',v=>Math.round(v*100)+'%');
+document.getElementById('oct-shift').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  if (synth) synth.set('octaveShift', v);
+  flash('voct', (v >= 0 ? '+' : '') + v);
+});
+document.getElementById('fine-tune').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  if (synth) synth.set('fineTune', v);
+  flash('vfine', (v >= 0 ? '+' : '') + v + '¢');
+});
+bindS('lfo-cutoff', v=>synth.set('lfoCutoffAmt',v),  'vlco', v=>Math.round(v*100)+'%');
+bindS('lfo-rate',   v=>{const h=lfoHz(v);if(synth)synth.set('lfoRate',h);},'vlrat',v=>lfoHz(v).toFixed(2)+'Hz');
+bindS('arp-bpm',    v=>{const b=bpmVal(v);if(synth)synth.arp.setBPM(b);},'vbpm',v=>bpmVal(v)+' bpm');
+bindS('glide',      v=>{if(synth&&glideOn)synth.setGlideSlider(v);},'vgl',v=>{
+  const t=v<0.01?0:Math.round(10*Math.pow(150,v)); return t===0?'Off':t+'ms';
+});
+
+// ─ Group buttons ────────────────────────────────────────────────
+document.querySelectorAll('.sbtn[data-g]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const g = btn.dataset.g;
+    document.querySelectorAll(`.sbtn[data-g="${g}"]`).forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    const v = btn.dataset.v;
+    if (!synth) return;
+    if (g==='sub')  { synth.set('subLevel', v==='off' ? 0 : gv('sub-level')/100); }
+    if (g==='lfo-wave') synth.setLFOWaveform(v);
+    if (g==='arp-pat')  synth.arp.setPattern(v);
+    if (g==='arp-div')  synth.arp.setDivision(parseInt(v));
+    if (g==='arp-oct')  synth.arp.setOctaveRange(parseInt(v));
+    if (g==='vca-mode') {
+      if (v==='gate') { synth.set('attack',0.001);synth.set('release',0.001);synth.set('sustain',1);synth.set('decay',0.001); }
+      else applyAll();
+    }
+  });
+});
+
+// ─ Toggles ──────────────────────────────────────────────────────
+document.getElementById('tgl').addEventListener('click', function() {
+  glideOn = !glideOn; this.classList.toggle('on', glideOn);
+  if (synth) synth.setGlideSlider(glideOn ? gv('glide')/100 : 0);
+});
+document.getElementById('tarp').addEventListener('click', function() {
+  arpOn = !arpOn; this.classList.toggle('on', arpOn);
+  if (synth) synth.setArpEnabled(arpOn);
+});
+document.getElementById('tkb').addEventListener('click', function() {
+  kbEnabled = !kbEnabled; this.classList.toggle('on', kbEnabled);
+});
+
+// ─ Module Bypass Toggles ────────────────────────────────────────
+const moduleToggles = ['tvco', 'tvcf', 'tvca', 'tenv', 'tlfo'];
+moduleToggles.forEach(id => {
+  document.getElementById(id).addEventListener('click', function() {
+    this.classList.toggle('on');
+    const isOn = this.classList.contains('on');
+    if (synth) {
+      synth.node.port.postMessage({ 
+        type: 'moduleToggle', 
+        module: id.substr(1), // remove 't' prefix
+        enabled: isOn 
+      });
+      console.log(`[DEBUG] Module ${id.substr(1)} ${isOn ? 'enabled' : 'bypassed'}`);
+    }
+  });
+});
+
+
+// ─ Keyboard build ───────────────────────────────────────────────
+const BLACK = new Set([1,3,6,8,10]);
+function buildKB() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  let wi = 0;
+  const whites = [];
+  for (let m = 36; m <= 79; m++) {
+    if (!BLACK.has(m%12)) {
+      const k = document.createElement('div');
+      k.className='kw'; k.dataset.midi=m;
+      kb.appendChild(k); bindKey(k,m); whites.push(m); wi++;
+    }
+  }
+  wi = 0;
+  for (let m = 36; m <= 79; m++) {
+    if (!BLACK.has(m%12)) wi++;
+    else {
+      const k = document.createElement('div');
+      k.className='kb'; k.dataset.midi=m;
+      k.style.left=((wi-1)*26+17)+'px';
+      kb.appendChild(k); bindKey(k,m);
+    }
+  }
+  kb.style.width=(whites.length*26)+'px';
+}
+function bindKey(el, midi) {
+  el.addEventListener('mousedown', e=>{e.preventDefault();trigger(midi);el.classList.add('pressed');heldMouse.set(midi,el);});
+  el.addEventListener('mouseup',   ()=>{release(midi);el.classList.remove('pressed');heldMouse.delete(midi);});
+  el.addEventListener('mouseleave',()=>{if(heldMouse.has(midi)){release(midi);el.classList.remove('pressed');heldMouse.delete(midi);}});
+  el.addEventListener('touchstart',e=>{e.preventDefault();trigger(midi);el.classList.add('pressed');},{passive:false});
+  el.addEventListener('touchend',  e=>{e.preventDefault();release(midi);el.classList.remove('pressed');});
+}
+
+// ─ Computer keyboard ────────────────────────────────────────────
+const KBL = {z:0,s:1,x:2,d:3,c:4,v:5,g:6,b:7,h:8,n:9,j:10,m:11};
+const KBH = {q:0,'2':1,w:2,'3':3,e:4,r:5,'5':6,t:7,'6':8,y:9,'7':10,u:11};
+document.addEventListener('keydown', e => {
+  if (!kbEnabled||e.repeat||e.ctrlKey||e.metaKey) return;
+  const k=e.key.toLowerCase();
+  let sem=null, oct=octave;
+  if (KBL[k]!==undefined) sem=KBL[k];
+  else if (KBH[k]!==undefined){sem=KBH[k];oct=octave+1;}
+  if (sem===null) return;
+  e.preventDefault();
+  const midi=(oct+1)*12+sem;
+  if (pressedKB.has(e.code)) return;
+  pressedKB.add(e.code);
+  trigger(midi);
+  document.querySelector(`.keyboard [data-midi="${midi}"]`)?.classList.add('pressed');
+});
+document.addEventListener('keyup', e => {
+  if (!kbEnabled) return;
+  const k=e.key.toLowerCase();
+  let sem=null, oct=octave;
+  if (KBL[k]!==undefined) sem=KBL[k];
+  else if (KBH[k]!==undefined){sem=KBH[k];oct=octave+1;}
+  pressedKB.delete(e.code);
+  if (sem===null) return;
+  release((oct+1)*12+sem);
+});
+
+// ─ Slider scroll + double-click reset ───────────────────────────
+document.querySelectorAll('input[type="range"].vs').forEach(el => {
+  el.addEventListener('wheel', e => {
+    e.preventDefault();
+    const step  = parseFloat(el.step) || 1;
+    const delta = -Math.sign(e.deltaY) * step;
+    el.value = Math.min(parseFloat(el.max), Math.max(parseFloat(el.min), parseFloat(el.value) + delta));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, { passive: false });
+
+  el.addEventListener('dblclick', () => {
+    el.value = (parseFloat(el.min) + parseFloat(el.max)) / 2;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+});
+
+buildKB();
+
+// Add test function to global scope for debugging
+window.testSynth = function() {
+  console.log('[TEST] Testing synthesizer...');
+  if (!synth) {
+    console.log('[TEST] Synth not initialized yet!');
+    return;
+  }
+  console.log('[TEST] Triggering test note (MIDI 60 = C4)');
+  synth.noteOn(60, 0.8);
+  
+  setTimeout(() => {
+    console.log('[TEST] Releasing test note');
+    synth.noteOff(60);
+  }, 1000);
+};
+
+window.testBasicAudio = function() {
+  console.log('[TEST] Testing basic audio context...');
+  if (!audioCtx) {
+    console.log('[TEST] Audio context not available!');
+    return;
+  }
+  
+  console.log('[TEST] Creating simple oscillator test...');
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
+  osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+  gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+  
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.5);
+  
+  console.log('[TEST] Basic audio test triggered for 0.5 seconds');
+};
+
+console.log('[DEBUG] testSynth() function available in console');
+</script>
+</body>
+</html>
