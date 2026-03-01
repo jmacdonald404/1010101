@@ -1218,6 +1218,44 @@ window.testBasicAudio = function() {
 };
 
 console.log('[DEBUG] testSynth() function available in console');
+
+// ─ Responsive scaling (mobile only) ─────────────────────────────
+// Scales the synth down to fit narrow viewports without cutting off
+// content. Desktop is untouched (s >= 1 → early return). User
+// pinch-zoom still works because this is a CSS transform, not a
+// viewport lock.
+function scaleSynth() {
+  const el = document.querySelector('.synth');
+
+  // Reset to natural state so offsetWidth is the true layout width
+  el.style.zoom      = '';
+  el.style.transform = '';
+  el.style.marginBottom = '';
+  document.body.style.overflowX = '';
+
+  const natural = el.offsetWidth;
+  // Body has 16px padding on each side
+  const avail = document.documentElement.clientWidth - 32;
+  const s = avail / natural;
+
+  if (s >= 1) return; // fits — desktop, do nothing
+
+  if (CSS.supports('zoom', String(s))) {
+    // zoom affects the layout box directly — no height compensation needed
+    el.style.zoom = s;
+  } else {
+    // transform fallback: layout box stays at natural size, so we
+    // pull up the following content with a negative margin-bottom
+    el.style.transformOrigin = 'top center';
+    el.style.transform       = `scale(${s})`;
+    el.style.marginBottom    = `${el.offsetHeight * (s - 1)}px`;
+    // suppress the horizontal scrollbar the oversized layout box would cause
+    document.body.style.overflowX = 'hidden';
+  }
+}
+
+window.addEventListener('resize', scaleSynth);
+scaleSynth();
 </script>
 </body>
 </html>
