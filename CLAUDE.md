@@ -20,17 +20,32 @@ Open `http://localhost:8080` in Chrome/Firefox/Safari. Click **"Start Audio"** t
 
 ### Communication between threads
 
-- **AudioParams** (a-rate or k-rate): `frequency`, `gate`, `cutoff`, `resonance`, `pulseWidth`, `velocity`, all ADSR params, LFO params, oscillator mix levels, `volume`
+- **AudioParams** (a-rate or k-rate): `frequency`, `gate`, `cutoff`, `resonance`, `pulseWidth`, `velocity`, all ADSR params, LFO params, oscillator mix levels (`sawLevel`, `pulseLevel`, `subLevel`, `noiseLevel`), `volume`, `octaveShift`, `fineTune`
 - **`port.postMessage`** (main → worklet): `lfoWaveform`, `glideTime`, `noteTarget`, `reset`, `moduleToggle`
 
 ### DSP chain (per sample, in `sh101-processor.js`)
 
 1. **Portamento** — logarithmic frequency glide + analog drift
-2. **LFO** — triangle/square/saw/S&H; modulates pitch, PWM, cutoff
-3. **VCO** — PolyBLEP sawtooth + pulse (anti-aliased), square sub-octave divider, white noise; mixer normalized by total level sum
-4. **ADSR** — exponential-coefficient envelope; used for VCA and VCF env-mod
-5. **VCF** — Huovilainen 4-pole ladder filter, **2× oversampled** (OSR = 88200 Hz); decimated via 15-tap half-band FIR. `THERMAL = 0.5`, `f = 2*tan(π*fc/OSR)`, noise dither `1e-6`
-6. **VCA** — `envOut * volume * velocity`
+2. **Transpose** — `transposeRatio = 2^(octaveShift + fineTune/1200)` applied to portamento output (k-rate, computed once per block)
+3. **LFO** — triangle/square/saw/S&H; modulates pitch, PWM, cutoff
+4. **VCO** — PolyBLEP sawtooth + pulse (anti-aliased), square sub-octave divider, white noise; mixer normalized by total level sum
+5. **ADSR** — exponential-coefficient envelope; used for VCA and VCF env-mod
+6. **VCF** — Huovilainen 4-pole ladder filter, **2× oversampled** (OSR = 88200 Hz); decimated via 15-tap half-band FIR. `THERMAL = 0.5`, `f = 2*tan(π*fc/OSR)`, noise dither `1e-6`
+7. **VCA** — `envOut * volume * velocity`
+
+### VCO oscillator mix
+
+Saw, Pulse, Sub, and Noise each have independent 0–1 level AudioParams (`sawLevel`, `pulseLevel`, `subLevel`, `noiseLevel`). All four can be mixed simultaneously. The Sub Oct buttons (Off / −1 Oct / −2 Oct) gate `subLevel`: Off forces it to 0; the active octave mode restores it from the Sub level slider.
+
+### Slider UX
+
+All `.vs` sliders support:
+- **Mouse wheel** on hover — 1 step per tick, prevents page scroll
+- **Double-click** — resets to midpoint of the slider's range (`(min + max) / 2`)
+
+### AudioWorklet cache busting
+
+`sh101-node.js` appends `?v=<Date.now()>` to the `addModule()` URL. This is intentional — browsers aggressively cache worklet modules and will silently run stale code otherwise. Do not remove.
 
 ### Parameter tapers in `sh101-node.js`
 
@@ -43,7 +58,7 @@ Open `http://localhost:8080` in Chrome/Firefox/Safari. Click **"Start Audio"** t
 
 ### MIDI device filtering
 
-MIDI inputs whose names start with `'M'` are intentionally excluded (lines 707, 760, 763 in `index.html`). This is deliberate — do not remove.
+MIDI inputs whose names start with `'M'` are intentionally excluded. This is deliberate — do not remove.
 
 ### MIDI CC mappings
 

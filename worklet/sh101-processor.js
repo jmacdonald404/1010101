@@ -331,9 +331,9 @@ class SH101Processor extends AudioWorkletProcessor {
       const res    = this._p(p.resonance,  i);
       
       // SYNTHESIS DEBUG: Test each step of the synthesis chain
-      if (gate > 0 && this._processCount % 1000 === 0 && i === 0) {
-        console.log(`[AudioWorklet] SYNTHESIS DEBUG START - Gate: ${gate}, Freq: ${freq}`);
-      }
+    //   if (gate > 0 && this._processCount % 1000 === 0 && i === 0) {
+    //     console.log(`[AudioWorklet] SYNTHESIS DEBUG START - Gate: ${gate}, Freq: ${freq}`);
+    //   }
       
       // Log gate state when it changes
     //   if (this._processCount % 1000 === 0) {

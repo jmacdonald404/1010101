@@ -748,7 +748,8 @@ document.getElementById('boot').addEventListener('click', async () => {
     console.log('[DEBUG] AudioWorklet node:', synth.node);
     console.log('[DEBUG] Available parameters:', [...synth.node.parameters.keys()]);
     
-    synth.onNoteOn  = (n) => { console.log('[SH101] noteOn', n); flashNote(n); };
+    // synth.onNoteOn  = (n) => { console.log('[SH101] noteOn', n); flashNote(n); };
+    synth.onNoteOn  = (n) => { flashNote(n); };
     synth.onNoteOff = ()  => dimNote();
     applyAll();
     console.log('[DEBUG] All parameters applied');

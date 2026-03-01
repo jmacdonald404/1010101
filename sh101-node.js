@@ -64,7 +64,7 @@ export class SH101 {
     const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
     const now  = this.ctx.currentTime;
 
-    console.log(`[SH101] Triggering note: MIDI=${midiNote}, freq=${freq.toFixed(1)}Hz, vel=${velocity.toFixed(2)}, time=${now.toFixed(3)}`);
+    // console.log(`[SH101] Triggering note: MIDI=${midiNote}, freq=${freq.toFixed(1)}Hz, vel=${velocity.toFixed(2)}, time=${now.toFixed(3)}`);
 
     // tell worklet portamento target (for glide)
     this.node.port.postMessage({ type: 'noteTarget', freq });
@@ -73,7 +73,7 @@ export class SH101 {
     this.node.parameters.get('velocity').setValueAtTime(velocity, now);
     this.node.parameters.get('gate').setValueAtTime(1, now);
 
-    console.log('[SH101] Parameters set - frequency, velocity, gate=1');
+    // console.log('[SH101] Parameters set - frequency, velocity, gate=1');
 
     if (this.onNoteOn) this.onNoteOn(midiNote);
   }
