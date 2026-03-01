@@ -283,6 +283,43 @@ input[type="range"].vs::-moz-range-thumb {
   box-shadow:0 0 4px rgba(100,220,100,0.4);
 }
 
+/* FX RACK */
+.fx-rack {
+  background:linear-gradient(180deg,#131620 0%,#0f1219 100%);
+  border-top:1px solid #1c2035; border-bottom:1px solid #0a0c13;
+  padding:16px 14px 10px; display:flex; flex-direction:row;
+  align-items:center; gap:10px; width:100%; position:relative;
+}
+.fx-rack-lbl {
+  font-family:'Barlow Condensed',sans-serif; font-size:8px;
+  letter-spacing:3px; color:#2a3355; text-transform:uppercase;
+  writing-mode:vertical-rl; transform:rotate(180deg);
+  align-self:stretch; display:flex; align-items:center;
+  padding-right:8px; border-right:1px solid #1c2035; margin-right:2px;
+}
+.fx-unit {
+  display:flex; flex-direction:row; align-items:center; gap:10px;
+  position:relative; padding:8px 14px;
+  border:1px solid #253050; border-radius:3px;
+  background:linear-gradient(180deg,#1c2035 0%,#161928 100%);
+  box-shadow:inset 0 1px 0 rgba(68,120,255,0.06);
+}
+.fx-title {
+  font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:8.5px;
+  letter-spacing:2.5px; color:#4488cc; text-transform:uppercase;
+  text-align:center; position:absolute; top:-7px; left:50%;
+  transform:translateX(-50%); white-space:nowrap;
+  background:#1c2035; padding:0 6px; line-height:14px;
+}
+.fx-rack .tsw { background:#0e1219; border-color:#1a2040; }
+.fx-rack .tsw.on { background:#0e1a35; border-color:#1a3666; }
+.fx-rack .tsw.on::after {
+  left:15px;
+  background:linear-gradient(180deg,#66aaff 0%,#2266cc 100%);
+  box-shadow:0 0 5px rgba(68,153,255,0.5);
+}
+.fx-rack .tlbl { color:#445577; }
+
 /* KEYBOARD */
 .kb-section {
   background:linear-gradient(180deg,#222224 0%,#1a1a1c 100%);
@@ -659,6 +696,52 @@ input[type="range"].vs::-moz-range-thumb {
 
   </div><!-- /panel -->
 
+  <!-- FX RACK -->
+  <div class="fx-rack">
+    <span class="fx-rack-lbl">FX Rack</span>
+
+    <!-- PCM 41 -->
+    <div class="fx-unit">
+      <span class="fx-title">PCM 41</span>
+      <div class="tsw" id="pcm41-pwr" title="PCM 41 On/Off"></div>
+      <div class="tlbl">On</div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="sw">
+        <div class="slbl">Long</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-delay" min="0" max="100" value="82"></div>
+        <div class="vtag" id="vpdly">375ms</div>
+        <div class="slbl br">Delay</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Max</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-repeat" min="0" max="97" value="35"></div>
+        <div class="vtag" id="vprpt">35%</div>
+        <div class="slbl br">Repeat</div>
+      </div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="sw">
+        <div class="slbl">Fast</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-lfo-rate" min="0" max="100" value="44"></div>
+        <div class="vtag" id="vplrate">0.50Hz</div>
+        <div class="slbl br">Rate</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Deep</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-lfo-depth" min="0" max="100" value="0"></div>
+        <div class="vtag" id="vpldepth">0ms</div>
+        <div class="slbl br">Depth</div>
+      </div>
+      <div class="tsw" id="pcm41-lfo-shape" title="LFO Shape: Sine / Square"></div>
+      <div class="tlbl">Square</div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="tsw" id="pcm41-phase" title="Phase Invert"></div>
+      <div class="tlbl">ɸ Inv</div>
+      <div class="tsw" id="pcm41-hold" title="Infinite Repeat / Hold"></div>
+      <div class="tlbl">Hold</div>
+    </div>
+
+  </div><!-- /fx-rack -->
+
   <!-- KEYBOARD -->
   <div class="kb-section">
     <div class="kb-topbar">
@@ -678,11 +761,13 @@ input[type="range"].vs::-moz-range-thumb {
 <div class="footnote">Web Audio API · Huovilainen Ladder Filter · PolyBLEP VCO · 2× Oversampled</div>
 
 <script type="module">
-import { SH101 } from './sh101-node.js';
+import { SH101  } from './sh101-node.js';
+import { PCM41  } from './pcm41.js';
 
 // ─ State ────────────────────────────────────────────────────────
 let synth = null, audioCtx = null, midiAccess = null;
 let octave = 4, kbEnabled = true, glideOn = false, arpOn = false;
+let pcm41Wet = null, pcm41 = null;
 let noteTimeout = null;
 const pressedKB = new Set();
 const heldMouse = new Map();
@@ -752,6 +837,34 @@ document.getElementById('boot').addEventListener('click', async () => {
     synth.onNoteOn  = (n) => { flashNote(n); };
     synth.onNoteOff = ()  => dimNote();
     applyAll();
+
+    // ── FX rack routing ────────────────────────────────────────
+    // synth.output → fxBus ─┬─ dry gain ──────────────────────→ masterOut → destination
+    //                        └─ PCM41.input → PCM41.output → wet gain ─┘
+    const fxBus    = audioCtx.createGain();
+    const masterOut = audioCtx.createGain();
+    masterOut.connect(audioCtx.destination);
+    synth.output.connect(fxBus);
+
+    // Dry path — always passes through
+    const pcm41Dry = audioCtx.createGain();
+    pcm41Dry.gain.value = 1;
+    fxBus.connect(pcm41Dry);
+    pcm41Dry.connect(masterOut);
+
+    // Wet path — through PCM 41 signal chain (off by default)
+    pcm41Wet = audioCtx.createGain();
+    pcm41Wet.gain.value = 0;
+    pcm41 = new PCM41(audioCtx);
+    await pcm41.init();
+    fxBus.connect(pcm41.input);
+    pcm41.output.connect(pcm41Wet);
+    pcm41Wet.connect(masterOut);
+    // Sync UI sliders → worklet initial values
+    document.getElementById('pcm41-delay').dispatchEvent(new Event('input'));
+    document.getElementById('pcm41-repeat').dispatchEvent(new Event('input'));
+    document.getElementById('pcm41-lfo-rate').dispatchEvent(new Event('input'));
+    document.getElementById('pcm41-lfo-depth').dispatchEvent(new Event('input'));
     console.log('[DEBUG] All parameters applied');
     setStatus('si-audio','sv-audio','red','Running','orange');
   } catch(err) {
@@ -923,6 +1036,48 @@ document.getElementById('tarp').addEventListener('click', function() {
 });
 document.getElementById('tkb').addEventListener('click', function() {
   kbEnabled = !kbEnabled; this.classList.toggle('on', kbEnabled);
+});
+document.getElementById('pcm41-pwr').addEventListener('click', function() {
+  if (!pcm41Wet) return;
+  this.classList.toggle('on');
+  const on = this.classList.contains('on');
+  pcm41Wet.gain.setTargetAtTime(on ? 0.45 : 0, audioCtx.currentTime, 0.02);
+});
+document.getElementById('pcm41-delay').addEventListener('input', function() {
+  const v = parseInt(this.value) / 100;
+  const t = 0.002 * Math.pow(600, v);
+  if (pcm41) pcm41.set('delayTime', t);
+  const ms = Math.round(t * 1000);
+  document.getElementById('vpdly').textContent = ms >= 1000 ? (t).toFixed(2) + 's' : ms + 'ms';
+});
+document.getElementById('pcm41-repeat').addEventListener('input', function() {
+  const v = parseInt(this.value) / 100;
+  if (pcm41) pcm41.set('feedback', v);
+  document.getElementById('vprpt').textContent = this.value + '%';
+});
+document.getElementById('pcm41-lfo-rate').addEventListener('input', function() {
+  const rate = 0.05 * Math.pow(200, parseInt(this.value) / 100);
+  if (pcm41) pcm41.set('lfoRate', rate);
+  document.getElementById('vplrate').textContent =
+    rate < 1 ? rate.toFixed(2) + 'Hz' : rate.toFixed(1) + 'Hz';
+});
+document.getElementById('pcm41-lfo-depth').addEventListener('input', function() {
+  const depth = parseInt(this.value) / 100 * 0.030;
+  if (pcm41) pcm41.set('lfoDepth', depth);
+  document.getElementById('vpldepth').textContent = Math.round(depth * 1000) + 'ms';
+});
+document.getElementById('pcm41-lfo-shape').addEventListener('click', function() {
+  this.classList.toggle('on');
+  const shape = this.classList.contains('on') ? 'square' : 'sine';
+  if (pcm41) pcm41.setLFOShape(shape);
+});
+document.getElementById('pcm41-phase').addEventListener('click', function() {
+  this.classList.toggle('on');
+  if (pcm41) pcm41.setPhaseInvert(this.classList.contains('on'));
+});
+document.getElementById('pcm41-hold').addEventListener('click', function() {
+  this.classList.toggle('on');
+  if (pcm41) pcm41.setInfiniteRepeat(this.classList.contains('on'));
 });
 
 // ─ Module Bypass Toggles ────────────────────────────────────────

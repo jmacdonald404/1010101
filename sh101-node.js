@@ -6,8 +6,9 @@ import { Arpeggiator } from './arp.js';
 export class SH101 {
   constructor(audioCtx) {
     this.ctx  = audioCtx;
-    this.node = null;
-    this.arp  = null;
+    this.node   = null;
+    this.output = null; // GainNode — connect this to the FX bus
+    this.arp    = null;
     this.arpEnabled = false;
     this._noteStack = []; // {note, velocity} — most recent last
 
@@ -29,9 +30,8 @@ export class SH101 {
     });
     console.log('[SH101] AudioWorkletNode created:', this.node);
 
-    console.log('[SH101] Connecting to destination...');
-    this.node.connect(this.ctx.destination);
-    console.log('[SH101] Connected to destination');
+    this.output = this.ctx.createGain();
+    this.node.connect(this.output);
     
     console.log('[SH101] Creating arpeggiator...');
     this.arp = new Arpeggiator(this.ctx, this);
