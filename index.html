@@ -97,6 +97,28 @@ html, body {
   box-shadow:0 0 6px var(--led-glow),0 0 14px var(--led-glow),inset 0 1px 0 rgba(255,200,100,0.4);
 }
 
+/* BRAND BAR — right side cluster */
+.brand-right { display:flex; align-items:center; gap:14px; }
+.db-meter { display:flex; align-items:center; gap:6px; }
+.db-bar {
+  width:72px; height:5px; background:var(--track);
+  border-radius:3px; overflow:hidden; border:1px solid #222;
+}
+.db-bar-fill {
+  height:100%; width:0%; border-radius:2px;
+  background:var(--led-green); transition:width 0.05s ease-out;
+}
+.db-bar-fill.orange { background:#ffaa00; }
+.db-bar-fill.red    { background:var(--roland-red); }
+.db-val {
+  font-family:'Share Tech Mono',monospace; font-size:10px;
+  color:var(--label-dim); min-width:40px; text-align:right; white-space:nowrap;
+}
+.db-val.green  { color:var(--led-green); }
+.db-val.orange { color:#ffaa00; }
+.db-val.red    { color:var(--roland-red); }
+.lim-section { display:flex; align-items:center; gap:6px; }
+
 /* STATUS STRIP */
 .status-strip {
   display:flex; align-items:center;
@@ -398,9 +420,19 @@ input[type="range"].vs::-moz-range-thumb {
       <div class="brand-model"><strong>SH</strong>-101</div>
       <span class="brand-tagline">Synthesizer</span>
     </div>
-    <div class="power-section">
-      <span class="power-label">Power</span>
-      <div class="led-dot on"></div>
+    <div class="brand-right">
+      <div class="db-meter">
+        <div class="db-bar"><div class="db-bar-fill" id="db-fill"></div></div>
+        <span class="db-val dim" id="sv-db">−∞</span>
+      </div>
+      <div class="lim-section">
+        <span class="power-label">Lim</span>
+        <div class="tsw on" id="lim-sw" title="Output limiter — brickwall at −1 dBFS"></div>
+      </div>
+      <div class="power-section">
+        <span class="power-label">Power</span>
+        <div class="led-dot on"></div>
+      </div>
     </div>
   </div>
 
@@ -856,6 +888,8 @@ let synth = null, audioCtx = null, midiAccess = null;
 let octave = 4, kbEnabled = true, glideOn = false, arpOn = false;
 let pcm41Wet = null, pcm41 = null;
 let qrvWet   = null, qrv   = null;
+let limiterNode = null;
+let _meterAn = null, _meterBuf = null;
 let noteTimeout = null;
 const pressedKB = new Set();
 const heldMouse = new Map();
@@ -883,6 +917,29 @@ function dimNote() {
     document.getElementById('sv-note').textContent = '—';
     document.getElementById('nbfill').style.width = '0%';
   }, 180);
+}
+
+function _meterLoop() {
+  requestAnimationFrame(_meterLoop);
+  if (!_meterAn) return;
+  _meterAn.getFloatTimeDomainData(_meterBuf);
+  let peak = 0;
+  for (let i = 0; i < _meterBuf.length; i++) { const a = Math.abs(_meterBuf[i]); if (a > peak) peak = a; }
+  const db  = peak > 1e-7 ? 20 * Math.log10(peak) : -Infinity;
+  const pct = isFinite(db) ? Math.max(0, Math.min(100, (db + 60) / 60 * 100)) : 0;
+  const fill = document.getElementById('db-fill');
+  const val  = document.getElementById('sv-db');
+  fill.style.width = pct + '%';
+  if (isFinite(db)) {
+    const zone = db > -6 ? 'red' : db > -18 ? 'orange' : 'green';
+    fill.className = 'db-bar-fill ' + zone;
+    val.textContent = (db >= 0 ? '+' : '') + db.toFixed(1);
+    val.className   = 'db-val ' + zone;
+  } else {
+    fill.className = 'db-bar-fill';
+    val.textContent = '−∞';
+    val.className   = 'db-val dim';
+  }
 }
 
 function updateMidi() {
@@ -931,7 +988,24 @@ document.getElementById('boot').addEventListener('click', async () => {
     //                        └─ PCM41.input → PCM41.output → wet gain ─┘
     const fxBus    = audioCtx.createGain();
     const masterOut = audioCtx.createGain();
-    masterOut.connect(audioCtx.destination);
+
+    // Output chain: masterOut → limiter → analyser → destination
+    limiterNode = audioCtx.createDynamicsCompressor();
+    limiterNode.threshold.value = -1.0;  // −1 dBFS brickwall
+    limiterNode.knee.value      =  0;    // hard knee
+    limiterNode.ratio.value     = 20.0;  // 20:1 ≈ brickwall limiting
+    limiterNode.attack.value    = 0.001; // 1 ms
+    limiterNode.release.value   = 0.050; // 50 ms
+
+    _meterAn  = audioCtx.createAnalyser();
+    _meterAn.fftSize = 1024;
+    _meterAn.smoothingTimeConstant = 0.0;
+    _meterBuf = new Float32Array(_meterAn.fftSize);
+
+    masterOut.connect(limiterNode);
+    limiterNode.connect(_meterAn);
+    _meterAn.connect(audioCtx.destination);
+    _meterLoop();
     synth.output.connect(fxBus);
 
     // Dry path — always passes through
@@ -1126,6 +1200,16 @@ document.querySelectorAll('.sbtn[data-g]').forEach(btn => {
       else applyAll();
     }
   });
+});
+
+// ─ Limiter toggle ────────────────────────────────────────────────
+document.getElementById('lim-sw').addEventListener('click', function() {
+  this.classList.toggle('on');
+  const active = this.classList.contains('on');
+  if (limiterNode) {
+    limiterNode.threshold.setValueAtTime(active ? -1 : 0, audioCtx.currentTime);
+    limiterNode.ratio.setValueAtTime(active ? 20 : 1, audioCtx.currentTime);
+  }
 });
 
 // ─ Toggles ──────────────────────────────────────────────────────
