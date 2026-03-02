@@ -157,6 +157,16 @@ All SH-101 synthesis modules and PCM 41 FX modules are operational.
 
 ---
 
+### 2026-03-01
+**UI — mobile responsive scaling**
+
+- `scaleSynth()` measures the synth's natural width vs viewport width and applies `zoom` (CSS standard, affects layout) or `transform: scale()` (fallback) to fit narrow screens without clipping.
+- Desktop is unaffected (`s ≥ 1` → early return, no DOM changes).
+- User pinch-zoom is preserved — scaling operates on the layout viewport only.
+- On resize/rotation the scale recalculates automatically.
+
+---
+
 ### 2026-02-28 (session 3)
 **PCM 41 — five-module Lexicon PCM 41 digital delay emulation**
 

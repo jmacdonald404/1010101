@@ -740,6 +740,92 @@ input[type="range"].vs::-moz-range-thumb {
       <div class="tlbl">Hold</div>
     </div>
 
+    <!-- Quadraverb -->
+    <div class="fx-unit">
+      <span class="fx-title">Quadraverb</span>
+      <div class="tsw" id="qrv-pwr" title="Quadraverb On/Off"></div>
+      <div class="tlbl">On</div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="sw">
+        <div class="slbl">Hot</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-gain" min="0" max="100" value="0"></div>
+        <div class="vtag" id="vqgain">0.0dB</div>
+        <div class="slbl br">Drive</div>
+      </div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="sw">
+        <div class="slbl">Hi</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-v1" min="0" max="100" value="21"></div>
+        <div class="vtag" id="vqv1">110Hz</div>
+        <div class="slbl br">V1</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Hi</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-v2" min="0" max="100" value="35"></div>
+        <div class="vtag" id="vqv2">220Hz</div>
+        <div class="slbl br">V2</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Hi</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-v3" min="0" max="100" value="44"></div>
+        <div class="vtag" id="vqv3">330Hz</div>
+        <div class="slbl br">V3</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Hi</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-v4" min="0" max="100" value="50"></div>
+        <div class="vtag" id="vqv4">440Hz</div>
+        <div class="slbl br">V4</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Hi</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-v5" min="0" max="100" value="58"></div>
+        <div class="vtag" id="vqv5">660Hz</div>
+        <div class="slbl br">V5</div>
+      </div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="sw">
+        <div class="slbl">Max</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-fb" min="0" max="99" value="85"></div>
+        <div class="vtag" id="vqfb">85%</div>
+        <div class="slbl br">Fdbk</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Wet</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-mix" min="0" max="100" value="50"></div>
+        <div class="vtag" id="vqmix">50%</div>
+        <div class="slbl br">Mix</div>
+      </div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="tsw on" id="qrv-gate" title="Resonator Feedback Gate"></div>
+      <div class="tlbl">Gate</div>
+      <div class="vdiv" style="height:50px;margin:0 4px"></div>
+      <div class="sw">
+        <div class="slbl">Max</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-diff" min="0" max="100" value="70"></div>
+        <div class="vtag" id="vqdiff">70%</div>
+        <div class="slbl br">Diff</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Dense</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-dens" min="0" max="100" value="50"></div>
+        <div class="vtag" id="vqdens">50%</div>
+        <div class="slbl br">Dens</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Long</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-decay" min="0" max="98" value="70"></div>
+        <div class="vtag" id="vqdecay">70%</div>
+        <div class="slbl br">Decay</div>
+      </div>
+      <div class="sw">
+        <div class="slbl">Wet</div>
+        <div class="strk sm"><input type="range" class="vs sm" id="qrv-rev" min="0" max="100" value="0"></div>
+        <div class="vtag" id="vqrev">0%</div>
+        <div class="slbl br">Verb</div>
+      </div>
+    </div>
+
   </div><!-- /fx-rack -->
 
   <!-- KEYBOARD -->
@@ -762,12 +848,14 @@ input[type="range"].vs::-moz-range-thumb {
 
 <script type="module">
 import { SH101  } from './sh101-node.js';
-import { PCM41  } from './pcm41.js';
+import { PCM41       } from './pcm41.js';
+import { Quadraverb  } from './quadraverb.js';
 
 // ─ State ────────────────────────────────────────────────────────
 let synth = null, audioCtx = null, midiAccess = null;
 let octave = 4, kbEnabled = true, glideOn = false, arpOn = false;
 let pcm41Wet = null, pcm41 = null;
+let qrvWet   = null, qrv   = null;
 let noteTimeout = null;
 const pressedKB = new Set();
 const heldMouse = new Map();
@@ -865,6 +953,21 @@ document.getElementById('boot').addEventListener('click', async () => {
     document.getElementById('pcm41-repeat').dispatchEvent(new Event('input'));
     document.getElementById('pcm41-lfo-rate').dispatchEvent(new Event('input'));
     document.getElementById('pcm41-lfo-depth').dispatchEvent(new Event('input'));
+
+    // Wet path — through Quadraverb signal chain (off by default)
+    qrvWet = audioCtx.createGain();
+    qrvWet.gain.value = 0;
+    qrv = new Quadraverb(audioCtx);
+    await qrv.init();
+    fxBus.connect(qrv.input);
+    qrv.output.connect(qrvWet);
+    qrvWet.connect(masterOut);
+    // Sync UI sliders → worklet initial values
+    ['qrv-gain',
+     'qrv-v1','qrv-v2','qrv-v3','qrv-v4','qrv-v5',
+     'qrv-fb','qrv-mix','qrv-diff','qrv-dens','qrv-decay','qrv-rev'].forEach(id =>
+      document.getElementById(id).dispatchEvent(new Event('input'))
+    );
     console.log('[DEBUG] All parameters applied');
     setStatus('si-audio','sv-audio','red','Running','orange');
   } catch(err) {
@@ -1078,6 +1181,79 @@ document.getElementById('pcm41-phase').addEventListener('click', function() {
 document.getElementById('pcm41-hold').addEventListener('click', function() {
   this.classList.toggle('on');
   if (pcm41) pcm41.setInfiniteRepeat(this.classList.contains('on'));
+});
+
+// ─ Quadraverb ────────────────────────────────────────────────────
+document.getElementById('qrv-pwr').addEventListener('click', function() {
+  this.classList.toggle('on');
+  const on = this.classList.contains('on');
+  if (qrvWet) qrvWet.gain.setTargetAtTime(on ? 1.0 : 0, audioCtx.currentTime, 0.02);
+});
+
+// Voice frequency sliders — log taper: f = 40 × 125^(v/100)
+// Range: v=0 → 40 Hz, v=100 → 5000 Hz
+[['qrv-v1','vqv1','voice1Freq'],['qrv-v2','vqv2','voice2Freq'],
+ ['qrv-v3','vqv3','voice3Freq'],['qrv-v4','vqv4','voice4Freq'],
+ ['qrv-v5','vqv5','voice5Freq']].forEach(([sliderId, tagId, param]) => {
+  document.getElementById(sliderId).addEventListener('input', function() {
+    const hz = 40 * Math.pow(125, +this.value / 100);
+    document.getElementById(tagId).textContent =
+      hz >= 1000 ? (hz / 1000).toFixed(1) + 'k' : Math.round(hz) + 'Hz';
+    if (qrv) qrv.set(param, hz);
+  });
+});
+
+document.getElementById('qrv-fb').addEventListener('input', function() {
+  document.getElementById('vqfb').textContent = this.value + '%';
+  if (qrv) qrv.set('feedback', +this.value / 100);
+});
+
+document.getElementById('qrv-mix').addEventListener('input', function() {
+  document.getElementById('vqmix').textContent = this.value + '%';
+  if (qrv) qrv.set('resonatorMix', +this.value / 100);
+});
+
+// Gate toggle: on = feedback loop closed (resonator rings),
+//             off = feedback muted (resonator decays then silences)
+document.getElementById('qrv-gate').addEventListener('click', function() {
+  this.classList.toggle('on');
+  if (qrv) qrv.set('gate', this.classList.contains('on') ? 1.0 : 0.0);
+});
+
+// Phase 4 — analog input stage
+// Drive: slider 0–100 maps to gain 1.0–4.0 (+0 to +12 dB) baked into the
+// hard-clip curve.  At 0 the curve is unity (no saturation).
+document.getElementById('qrv-gain').addEventListener('input', function() {
+  const drive = 1 + +this.value * 3 / 100; // 1.0–4.0
+  const db    = 20 * Math.log10(drive);
+  document.getElementById('vqgain').textContent =
+    drive > 1 ? '+' + db.toFixed(1) + 'dB' : '0.0dB';
+  if (qrv) qrv.setDrive(drive);
+});
+
+// Phase 3 — reverb diffusion & tail controls
+// diffusion: g = 0.75 × (v/100); 0 = distinct pre-delay, 100 = immediate wash
+document.getElementById('qrv-diff').addEventListener('input', function() {
+  document.getElementById('vqdiff').textContent = this.value + '%';
+  if (qrv) qrv.set('diffusion', +this.value / 100);
+});
+
+// density: crossfades short tail (100%) vs long tail (0%)
+document.getElementById('qrv-dens').addEventListener('input', function() {
+  document.getElementById('vqdens').textContent = this.value + '%';
+  if (qrv) qrv.set('density', +this.value / 100);
+});
+
+// decay: IIR comb feedback coefficient for both tail paths (0–0.98)
+document.getElementById('qrv-decay').addEventListener('input', function() {
+  document.getElementById('vqdecay').textContent = this.value + '%';
+  if (qrv) qrv.set('reverbDecay', +this.value / 100);
+});
+
+// verb: wet/dry mix for Phase 3 reverb output (0 = off by default)
+document.getElementById('qrv-rev').addEventListener('input', function() {
+  document.getElementById('vqrev').textContent = this.value + '%';
+  if (qrv) qrv.set('reverbMix', +this.value / 100);
 });
 
 // ─ Module Bypass Toggles ────────────────────────────────────────

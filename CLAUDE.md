@@ -81,6 +81,16 @@ Each DSP section (VCO, VCF, VCA, ENV, LFO) can be bypassed independently via tog
 
 Uses Chris Wilson's Web Audio lookahead scheduling technique (`_lookahead = 25ms`, `_interval = 10ms`). Patterns: `up`, `down`, `updown`, `random`. Divisions: 8, 16, 32. Supports 1–2 octave range. The arpeggiator bypasses `SH101.noteOn/noteOff` and drives `synth.node.parameters` directly for sample-accurate timing.
 
+### Responsive scaling (`scaleSynth()`)
+
+Defined at the bottom of the inline `<script>` in `index.html`. Scales the `.synth` element to fit narrow (mobile) viewports without affecting desktop layout.
+
+- Prefers the CSS `zoom` property (standard, affects layout box directly — no height compensation needed).
+- Falls back to `transform: scale()` + negative `margin-bottom` + `body { overflow-x: hidden }` for browsers without `zoom`.
+- **Desktop guard**: if `avail / natural ≥ 1` the function returns immediately — no DOM changes on desktop.
+- Registered on `window.resize` for orientation changes.
+- Pinch-zoom is unaffected — it operates on the visual viewport, not layout.
+
 ---
 
 ## PCM 41 FX Rack
