@@ -90,6 +90,7 @@ class LFO {
     }
     const p = this.phase;
     switch (shape) {
+      case 'sine':     return Math.sin(2 * Math.PI * p);
       case 'triangle': return p < 0.5 ? 4*p - 1 : 3 - 4*p;
       case 'square':   return p < 0.5 ? 1 : -1;
       case 'saw':      return 2*p - 1;
@@ -178,7 +179,7 @@ class LadderFilter {
 
   process(input, cutoff, res) {
     const f = 2.0 * Math.tan(Math.PI * Math.min(cutoff, this.OSR * 0.45) / this.OSR);
-    const k = res * 3.999;
+    const k = res * 4.0;
     const s0 = this._step(input, f, k);
     const s1 = this._step(input, f, k);
     return this.dec.process(s0, s1);
@@ -219,16 +220,16 @@ class SH101Processor extends AudioWorkletProcessor {
       { name:'pulseLevel',  defaultValue:0.0,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
       { name:'subLevel',    defaultValue:0.0,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
       { name:'noiseLevel',  defaultValue:0.0,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
-      { name:'cutoff',      defaultValue:2000, minValue:20,   maxValue:18000, automationRate:'a-rate' },
+      { name:'cutoff',      defaultValue:2000, minValue:10,   maxValue:20000, automationRate:'a-rate' },
       { name:'resonance',   defaultValue:0.1,  minValue:0,    maxValue:1.2,   automationRate:'a-rate' },
       { name:'envModAmt',   defaultValue:0.5,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
       { name:'keyTracking', defaultValue:0.5,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
-      { name:'attack',      defaultValue:0.005,minValue:0.001,maxValue:2,     automationRate:'k-rate' },
-      { name:'decay',       defaultValue:0.2,  minValue:0.001,maxValue:2,     automationRate:'k-rate' },
-      { name:'sustain',     defaultValue:0.7,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
-      { name:'release',     defaultValue:0.3,  minValue:0.001,maxValue:2,     automationRate:'k-rate' },
+      { name:'attack',      defaultValue:0.005,minValue:0.0015,maxValue:4,    automationRate:'k-rate' },
+      { name:'decay',       defaultValue:0.2,  minValue:0.002, maxValue:10,   automationRate:'k-rate' },
+      { name:'sustain',     defaultValue:0.7,  minValue:0,     maxValue:1,    automationRate:'k-rate' },
+      { name:'release',     defaultValue:0.3,  minValue:0.002, maxValue:10,   automationRate:'k-rate' },
       { name:'lfoRate',     defaultValue:2.0,  minValue:0.01, maxValue:30,    automationRate:'k-rate' },
-      { name:'lfoPitchAmt', defaultValue:0,    minValue:0,    maxValue:1,     automationRate:'k-rate' },
+      { name:'lfoPitchAmt', defaultValue:0,    minValue:0,    maxValue:12,    automationRate:'k-rate' },
       { name:'lfoCutoffAmt',defaultValue:0,    minValue:0,    maxValue:1,     automationRate:'k-rate' },
       { name:'lfoPWMAmt',   defaultValue:0,    minValue:0,    maxValue:1,     automationRate:'k-rate' },
       { name:'volume',      defaultValue:0.7,  minValue:0,    maxValue:1,     automationRate:'k-rate' },
@@ -265,9 +266,22 @@ class SH101Processor extends AudioWorkletProcessor {
     this.driftTarget = 0;
     this.driftSmooth = 0;
 
+    this.pwMode   = 'man'; // 'lfo' | 'man' | 'env'
+    this.subMode  = 1;    // 0 = 25%pw -2oct | 1 = sq -2oct | 2 = sq -1oct
+    this.envMode  = 1;    // 0 = lfo | 1 = gate | 2 = gate+trig
+    this.retrigger = false;
+    this.vcaMode  = 0;    // 0 = env | 1 = gate
+    this.subPhase1 = 0;   // -1 oct phase (advances at dt*0.5)
+    this.subPhase2 = 0;   // -2 oct phase (advances at dt*0.25)
+
     this.port.onmessage = ({ data }) => {
       switch (data.type) {
         case 'lfoWaveform': this.lfoShape = data.value; break;
+        case 'pwMode':      this.pwMode   = data.value; break;
+        case 'subMode':     this.subMode  = data.value; break;
+        case 'envMode':     this.envMode  = data.value; break;
+        case 'retrigger':   this.retrigger = true; break;
+        case 'vcaMode':     this.vcaMode  = data.value; break;
         case 'glideTime':   this.porta.setTime(data.value); break;
         case 'noteTarget':  this.porta.setTarget(data.freq); break;
         case 'reset':       this.filter.reset(); break;
@@ -355,6 +369,23 @@ class SH101Processor extends AudioWorkletProcessor {
       // LFO
       const lfoOut = this.moduleStates.lfo ? this.lfo.process(lfoRate, this.lfoShape) : 0;
 
+      // ADSR (computed before VCO so envOut is available for pwMode:'env')
+      let effectiveGate = gate;
+      if (this.envMode === 0) {
+        // LFO mode: gate driven by LFO phase (first half = on, second half = off)
+        effectiveGate = this.lfo.phase < 0.5 ? 1 : 0;
+      } else if (this.envMode === 2 && this.retrigger) {
+        // Gate+Trig: force restart from zero even if gate was already held
+        this.adsr.stage = 'attack';
+        this.adsr.value = 0;
+        this.retrigger = false;
+      }
+      const envOut = this.moduleStates.env ? this.adsr.process(effectiveGate, attack, decay, sustain, release) : 1.0;
+      if (!this._loggedFirstNote && this.adsr.stage === 'attack') {
+        console.log('[worklet] first gate trigger — freq:', freq.toFixed(1), 'vol:', volume.toFixed(2));
+        this._loggedFirstNote = true;
+      }
+
       // VCO
       let osc = 0;
       let norm = 1.0;
@@ -362,14 +393,28 @@ class SH101Processor extends AudioWorkletProcessor {
         const pitchMod  = lfoOut * lfoPitch;
         const finalFreq = slewedFreq * Math.pow(2, pitchMod / 12.0);
         const dt        = finalFreq / sampleRate;
-        const modPW     = Math.min(0.99, Math.max(0.01, pw + lfoOut * lfoPWM * 0.4));
+        let modPW;
+        switch (this.pwMode) {
+          case 'lfo': modPW = Math.min(0.99, Math.max(0.01, pw + lfoOut * lfoPWM * 0.4)); break;
+          case 'env': modPW = Math.min(0.99, Math.max(0.01, envOut)); break;
+          default:    modPW = Math.min(0.99, Math.max(0.01, pw)); break; // 'man'
+        }
 
         this.phase += dt;
         if (this.phase >= 1) this.phase -= 1;
 
         const saw   = blSaw(this.phase, dt);
         const pulse = blPulse(this.phase, dt, modPW);
-        const sub   = this.phase < 0.5 ? -1.0 : 1.0; // flip-flop divider
+
+        // Sub oscillator — phase-locked dividers (unaffected by PWM)
+        this.subPhase1 = (this.subPhase1 + dt * 0.5)  % 1;
+        this.subPhase2 = (this.subPhase2 + dt * 0.25) % 1;
+        let sub;
+        switch (this.subMode) {
+          case 2:  sub = this.subPhase1 < 0.5  ? 1.0 : -1.0; break; // sq, -1 oct
+          case 1:  sub = this.subPhase2 < 0.5  ? 1.0 : -1.0; break; // sq, -2 oct
+          default: sub = this.subPhase2 < 0.25 ? 1.0 : -1.0; break; // 25% pw, -2 oct
+        }
         const noise = Math.random() * 2 - 1;
 
         norm = Math.max(sawLvl + pulseLvl + subLvl + noiseLvl, 1.0);
@@ -381,29 +426,23 @@ class SH101Processor extends AudioWorkletProcessor {
     //     console.log(`[AudioWorklet] Oscillator output: ${osc.toFixed(4)}, sawLvl: ${sawLvl}, norm: ${norm.toFixed(3)}`);
     //   }
 
-      // ADSR
-      const envOut = this.moduleStates.env ? this.adsr.process(gate, attack, decay, sustain, release) : 1.0;
-      if (!this._loggedFirstNote && this.adsr.stage === 'attack') {
-        console.log('[worklet] first gate trigger — freq:', freq.toFixed(1), 'vol:', volume.toFixed(2));
-        this._loggedFirstNote = true;
-      }
-      
       // Debug envelope state every 1000 calls
     //   if (this._processCount % 1000 === 0 && (gate > 0 || envOut > 0.001)) {
     //     console.log(`[AudioWorklet] Envelope - gate: ${gate.toFixed(3)}, stage: ${this.adsr.stage}, envOut: ${envOut.toFixed(4)}`);
     //   }
 
       // VCF — key tracking relative to A4
-      const keyOffset  = keyTrack * (freq - 440) / 440 * 4000;
-      const envBoost   = envOut * envMod * (18000 - cutoffBase);
-      const lfoBoost   = lfoOut * lfoCutoff * cutoffBase * 0.5;
-      const finalCutoff = Math.min(18000, Math.max(20, cutoffBase + envBoost + keyOffset + lfoBoost));
+      const keyOffset  = cutoffBase * (Math.pow(freq / 440, keyTrack) - 1);
+      const envBoost   = envOut * envMod * (20000 - cutoffBase);
+      const lfoBoost   = lfoOut * lfoCutoff * 10000;
+      const finalCutoff = Math.min(20000, Math.max(10, cutoffBase + envBoost + keyOffset + lfoBoost));
 
       // VCF
       const filtered = this.moduleStates.vcf ? this.filter.process(osc, finalCutoff, res) : osc;
 
-      // VCA
-      const vcaLevel = this.moduleStates.vca ? (envOut * volume * velocity) : 1.0;
+      // VCA — env mode: ADSR controls amplitude; gate mode: raw key gate controls amplitude
+      const vcaEnv  = this.vcaMode === 1 ? gate : envOut;
+      const vcaLevel = this.moduleStates.vca ? (vcaEnv * volume * velocity) : 1.0;
       const finalOutput = filtered * vcaLevel;
       
       // DEBUG: Log the entire synthesis chain when gate is on

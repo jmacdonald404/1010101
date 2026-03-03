@@ -212,6 +212,28 @@ html, body {
   pointer-events:none;
 }
 .strk.sm { height:60px; }
+.strk.xs { height:22px; }
+.sl-scale {
+  position:absolute; left:100%; top:50%; height:82%;
+  transform:translateY(-50%);
+  display:flex; flex-direction:column; justify-content:space-between;
+  padding-left:3px; pointer-events:none;
+}
+.sl-tick {
+  display:flex; align-items:center; height:1px; position:relative;
+}
+.sl-tick::before {
+  content:''; width:5px; height:1px; background:rgba(255,255,255,0.22);
+  display:block; flex-shrink:0;
+}
+.sl-tick.sl-lbl { }
+.sl-tick.sl-lbl::after {
+  content:attr(data-lbl);
+  font-family:'Barlow Condensed',sans-serif; font-size:6px;
+  color:rgba(255,255,255,0.35); line-height:1;
+  margin-left:2px; position:absolute; left:5px;
+  top:50%; transform:translateY(-50%);
+}
 
 input[type="range"].vs {
   -webkit-appearance:none; appearance:none;
@@ -223,6 +245,9 @@ input[type="range"].vs {
 }
 input[type="range"].vs.sm {
   width:52px;
+}
+input[type="range"].vs.xs {
+  width:14px;
 }
 input[type="range"].vs::-webkit-slider-runnable-track {
   height:3px; width:100%; background:var(--track);
@@ -347,7 +372,7 @@ input[type="range"].vs::-moz-range-thumb {
   background:linear-gradient(180deg,#222224 0%,#1a1a1c 100%);
   border-top:1px solid #111; border-radius:0 0 5px 5px;
   padding:10px 14px 12px; position:relative; z-index:1;
-  width: 100%;
+  width:100%; display:flex; flex-direction:row; align-items:flex-start; gap:14px;
 }
 .kb-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .kb-lbl {
@@ -463,98 +488,119 @@ input[type="range"].vs::-moz-range-thumb {
   <!-- PANEL -->
   <div class="panel">
 
-    <!-- PORTAMENTO -->
+    <!-- TUNE -->
     <div class="section" style="min-width:82px">
-      <span class="sec-title">Portamento</span>
-      <div class="row" style="justify-content:center">
+      <span class="sec-title">Tune</span>
+      <div class="row" style="margin-top:6px;justify-content:center">
         <div class="sw">
-          <div class="slbl">Long</div>
-          <div class="strk"><input type="range" class="vs" id="glide" min="0" max="100" value="0"></div>
-          <div class="vtag" id="vgl">0</div>
-          <div class="slbl br">Time</div>
+          <div class="slbl">+50</div>
+          <div class="strk"><input type="range" class="vs" id="fine-tune" min="-50" max="50" step="1" value="0"></div>
+          <div class="vtag" id="vfine">0¢</div>
+          <div class="slbl br">Fine</div>
         </div>
       </div>
-      <div class="tw" style="margin-top:2px">
-        <div class="tsw" id="tgl"></div>
-        <div class="tlbl">On</div>
+    </div>
+
+    <!-- LFO -->
+    <div class="section">
+      <span class="sec-title blue">LFO</span>
+      <div style="position:absolute;top:8px;right:8px">
+        <div class="led-dot" id="lfo-led"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
+        <div class="sw">
+          <div class="slbl">Fast</div>
+          <div class="strk"><input type="range" class="vs" id="lfo-rate" min="0" max="100" value="25"></div>
+          <div class="vtag show" id="vlrat">2.00Hz</div>
+          <div class="slbl br">Rate</div>
+        </div>
+        <div class="vdiv"></div>
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <button class="sbtn" data-g="lfo-wave" data-v="sine">Sin</button>
+          <button class="sbtn on" data-g="lfo-wave" data-v="triangle">Tri</button>
+          <button class="sbtn" data-g="lfo-wave" data-v="square">Sqr</button>
+          <button class="sbtn" data-g="lfo-wave" data-v="saw">Saw</button>
+          <button class="sbtn" data-g="lfo-wave" data-v="sh">S&amp;H</button>
+        </div>
       </div>
     </div>
 
     <!-- VCO -->
-    <div class="section" style="min-width:292px">
+    <div class="section">
       <span class="sec-title red">VCO</span>
       <div style="position:absolute;top:8px;right:8px">
         <div class="tsw on" id="tvco" title="VCO Enable/Bypass"></div>
       </div>
-      <div style="display:flex;gap:10px;margin-top:6px;align-items:flex-start">
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div>
-            <div class="grp-lbl" style="margin-bottom:4px">Sub Oct</div>
-            <div class="brow" style="flex-direction:column;gap:3px">
-              <button class="sbtn on" data-g="sub" data-v="off">Off</button>
-              <button class="sbtn" data-g="sub" data-v="oct1">−1 Oct</button>
-              <button class="sbtn" data-g="sub" data-v="oct2">−2 Oct</button>
-            </div>
-          </div>
+      <div class="row" style="margin-top:6px;align-items:flex-end;gap:10px">
+        <div class="sw">
+          <div class="slbl">Full</div>
+          <div class="strk"><input type="range" class="vs" id="lfo-pitch" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vlpit">0%</div>
+          <div class="slbl br">Mod</div>
         </div>
-        <div class="vdiv"></div>
-        <div class="row" style="align-items:flex-end;gap:10px">
-          <div class="sw">
-            <div class="slbl">Full</div>
-            <div class="strk"><input type="range" class="vs" id="saw-level" min="0" max="100" value="100"></div>
-            <div class="vtag" id="vsaw">100%</div>
-            <div class="slbl br">Saw</div>
-          </div>
-          <div class="sw">
-            <div class="slbl">Full</div>
-            <div class="strk"><input type="range" class="vs" id="pulse-level" min="0" max="100" value="0"></div>
-            <div class="vtag" id="vpls">0%</div>
-            <div class="slbl br">Pulse</div>
-          </div>
-          <div class="sw">
-            <div class="slbl">Full</div>
-            <div class="strk"><input type="range" class="vs" id="sub-level" min="0" max="100" value="0"></div>
-            <div class="vtag" id="vsubl">0%</div>
-            <div class="slbl br">Sub</div>
-          </div>
-          <div class="vdiv" style="height:70px;align-self:center"></div>
-          <div class="sw">
-            <div class="slbl">More</div>
-            <div class="strk"><input type="range" class="vs" id="noise-level" min="0" max="100" value="0"></div>
-            <div class="vtag" id="vnl">0%</div>
-            <div class="slbl br">Noise</div>
-          </div>
-          <div class="sw">
-            <div class="slbl">Wide</div>
-            <div class="strk"><input type="range" class="vs" id="pulse-width" min="1" max="99" value="50"></div>
-            <div class="vtag" id="vpw">50%</div>
-            <div class="slbl br">P.Width</div>
-          </div>
-          <div class="sw">
-            <div class="slbl">More</div>
-            <div class="strk"><input type="range" class="vs" id="lfo-pwm" min="0" max="100" value="0"></div>
-            <div class="vtag" id="vlpwm">0%</div>
-            <div class="slbl br">PWM</div>
-          </div>
-          <div class="sw">
-            <div class="slbl">More</div>
-            <div class="strk"><input type="range" class="vs" id="lfo-pitch" min="0" max="100" value="0"></div>
-            <div class="vtag" id="vlpit">0%</div>
-            <div class="slbl br">Pitch</div>
-          </div>
-          <div class="vdiv" style="height:70px;align-self:center"></div>
-          <div class="sw">
-            <div class="slbl">+5</div>
-            <div class="strk"><input type="range" class="vs" id="oct-shift" min="-5" max="5" step="1" value="0"></div>
-            <div class="vtag" id="voct">0</div>
-            <div class="slbl br">Octave</div>
-          </div>
-          <div class="sw">
-            <div class="slbl">+100</div>
-            <div class="strk"><input type="range" class="vs" id="fine-tune" min="-100" max="100" step="1" value="0"></div>
-            <div class="vtag" id="vfine">0¢</div>
-            <div class="slbl br">Fine</div>
-          </div>
+        <div class="sw">
+          <div class="slbl">+5</div>
+          <div class="strk"><input type="range" class="vs" id="oct-shift" min="-5" max="5" step="1" value="0"></div>
+          <div class="vtag" id="voct">0</div>
+          <div class="slbl br">Octave</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Sqr</div>
+          <div class="strk"><input type="range" class="vs" id="pulse-width" min="1" max="100" value="100"></div>
+          <div class="vtag" id="vpw">50%</div>
+          <div class="slbl br">P.Width</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">LFO</div>
+          <div class="strk xs"><input type="range" class="vs xs" id="pw-mode" min="0" max="2" step="1" value="1"></div>
+          <div class="slbl">Env</div>
+          <div class="vtag" id="vpwmode">Man</div>
+          <div class="slbl br">P.Mode</div>
+        </div>
+        <div class="vdiv" style="height:70px;align-self:center"></div>
+        <div class="sw">
+          <div class="slbl">More</div>
+          <div class="strk"><input type="range" class="vs" id="lfo-pwm" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vlpwm">0%</div>
+          <div class="slbl br">PWM</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOURCE MIXER -->
+    <div class="section">
+      <span class="sec-title red">Source Mixer</span>
+      <div class="row" style="margin-top:6px;align-items:flex-end;gap:10px">
+        <div class="sw">
+          <div class="slbl">Full</div>
+          <div class="strk"><input type="range" class="vs" id="pulse-level" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vpls">0%</div>
+          <div class="slbl br">Pulse</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Full</div>
+          <div class="strk"><input type="range" class="vs" id="saw-level" min="0" max="100" value="100"></div>
+          <div class="vtag" id="vsaw">100%</div>
+          <div class="slbl br">Saw</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Full</div>
+          <div class="strk"><input type="range" class="vs" id="sub-level" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vsubl">0%</div>
+          <div class="slbl br">Sub</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">1⊓</div>
+          <div class="strk xs"><input type="range" class="vs xs" id="sub-mode" min="0" max="2" step="1" value="1"></div>
+          <div class="slbl">2⊏</div>
+          <div class="vtag" id="vsubmode">2↓⊓</div>
+          <div class="slbl br">Sub Oct</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">More</div>
+          <div class="strk"><input type="range" class="vs" id="noise-level" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vnl">0%</div>
+          <div class="slbl br">Noise</div>
         </div>
       </div>
     </div>
@@ -586,16 +632,16 @@ input[type="range"].vs::-moz-range-thumb {
           <div class="slbl br">Env Mod</div>
         </div>
         <div class="sw">
+          <div class="slbl">More</div>
+          <div class="strk"><input type="range" class="vs" id="lfo-cutoff" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vlco">0%</div>
+          <div class="slbl br">LFO Mod</div>
+        </div>
+        <div class="sw">
           <div class="slbl">Full</div>
           <div class="strk"><input type="range" class="vs" id="key-track" min="0" max="100" value="50"></div>
           <div class="vtag" id="vktr">50%</div>
           <div class="slbl br">Key Trk</div>
-        </div>
-        <div class="sw">
-          <div class="slbl">More</div>
-          <div class="strk"><input type="range" class="vs" id="lfo-cutoff" min="0" max="100" value="0"></div>
-          <div class="vtag" id="vlco">0%</div>
-          <div class="slbl br">LFO</div>
         </div>
       </div>
     </div>
@@ -605,14 +651,6 @@ input[type="range"].vs::-moz-range-thumb {
       <span class="sec-title red">VCA</span>
       <div style="position:absolute;top:8px;right:8px">
         <div class="tsw on" id="tvca" title="VCA Enable/Bypass"></div>
-      </div>
-      <div class="row" style="margin-top:6px;justify-content:center">
-        <div class="sw">
-          <div class="slbl">High</div>
-          <div class="strk"><input type="range" class="vs" id="volume" min="0" max="100" value="70"></div>
-          <div class="vtag" id="vvol">70%</div>
-          <div class="slbl br">Level</div>
-        </div>
       </div>
       <div style="margin-top:6px">
         <div class="grp-lbl" style="margin-bottom:3px">Mode</div>
@@ -630,6 +668,13 @@ input[type="range"].vs::-moz-range-thumb {
         <div class="tsw on" id="tenv" title="Envelope Enable/Bypass"></div>
       </div>
       <div class="row" style="margin-top:6px;gap:12px">
+        <div class="sw">
+          <div class="slbl">G+T</div>
+          <div class="strk xs"><input type="range" class="vs xs" id="env-mode" min="0" max="2" step="1" value="1"></div>
+          <div class="slbl">LFO</div>
+          <div class="vtag" id="venvmode">Gate</div>
+          <div class="slbl br">Trig</div>
+        </div>
         <div class="sw">
           <div class="slbl">Long</div>
           <div class="strk"><input type="range" class="vs" id="attack" min="0" max="100" value="2"></div>
@@ -657,32 +702,7 @@ input[type="range"].vs::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- LFO -->
-    <div class="section" style="min-width:140px">
-      <span class="sec-title blue">LFO</span>
-      <div style="position:absolute;top:8px;right:8px">
-        <div class="tsw on" id="tlfo" title="LFO Enable/Bypass"></div>
-      </div>
-      <div style="margin-top:6px">
-        <div class="grp-lbl" style="margin-bottom:4px">Waveform</div>
-        <div class="brow" style="flex-wrap:wrap;gap:2px;max-width:118px">
-          <button class="sbtn on" data-g="lfo-wave" data-v="triangle">Tri</button>
-          <button class="sbtn" data-g="lfo-wave" data-v="square">Sqr</button>
-          <button class="sbtn" data-g="lfo-wave" data-v="saw">Saw</button>
-          <button class="sbtn" data-g="lfo-wave" data-v="sh">S&amp;H</button>
-        </div>
-      </div>
-      <div class="row" style="margin-top:8px;justify-content:center">
-        <div class="sw">
-          <div class="slbl">Fast</div>
-          <div class="strk"><input type="range" class="vs" id="lfo-rate" min="0" max="100" value="25"></div>
-          <div class="vtag show" id="vlrat">2.00Hz</div>
-          <div class="slbl br">Rate</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ARPEGGIO -->
+    <!-- ARPEGGIO (moved to row 2; full controls commented out)
     <div class="section" style="min-width:160px">
       <span class="sec-title">Arpeggio</span>
       <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
@@ -725,10 +745,64 @@ input[type="range"].vs::-moz-range-thumb {
         </div>
       </div>
     </div>
+    -->
 
   </div><!-- /panel -->
 
-  <!-- FX RACK -->
+  <!-- ROW 2: ARPEGGIO (SIMPLIFIED) -->
+  <div class="panel" style="padding:8px 14px 6px;border-top:1px solid #252527">
+    <div class="section">
+      <span class="sec-title">Arpeggio</span>
+      <div style="display:flex;gap:4px;margin-top:6px">
+        <button class="sbtn" id="arp-btn-up"     data-pat="up">Up</button>
+        <button class="sbtn" id="arp-btn-down"   data-pat="down">Down</button>
+        <button class="sbtn" id="arp-btn-updown" data-pat="updown">Up / Dn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: PORTAMENTO + KEYBOARD -->
+  <div class="kb-section">
+    <!-- PORTAMENTO -->
+    <div class="section" style="min-width:120px;flex-shrink:0;border-top:none">
+      <div class="row" style="justify-content:center;gap:10px;margin-top:6px">
+        <div class="sw">
+          <div class="slbl">High</div>
+          <div class="strk"><input type="range" class="vs" id="volume" min="0" max="100" value="70"></div>
+          <div class="vtag" id="vvol">70%</div>
+          <div class="slbl br">Volume</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Long</div>
+          <div class="strk"><input type="range" class="vs" id="glide" min="0" max="100" value="0"></div>
+          <div class="vtag" id="vgl">Off</div>
+          <div class="slbl br">Porta</div>
+        </div>
+        <div class="sw">
+          <div class="slbl">Auto</div>
+          <div class="strk xs"><input type="range" class="vs xs" id="porta-mode" min="0" max="2" step="1" value="1"></div>
+          <div class="slbl">On</div>
+          <div class="vtag" id="vportamode">Off</div>
+          <div class="slbl br">Mode</div>
+        </div>
+      </div>
+    </div>
+    <!-- KEYBOARD -->
+    <div style="flex:1;min-width:0">
+      <div class="kb-topbar">
+        <span class="kb-lbl">32 Key · C2–G4</span>
+        <div class="kb-ctrls">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="kb-lbl">Computer KB</span>
+            <div class="tsw on" id="tkb"></div>
+          </div>
+        </div>
+      </div>
+      <div class="keyboard" id="keyboard"></div>
+    </div>
+  </div>
+
+  <!-- ROW 4: FX RACK -->
   <div class="fx-rack">
     <span class="fx-rack-lbl">FX Rack</span>
 
@@ -860,20 +934,6 @@ input[type="range"].vs::-moz-range-thumb {
 
   </div><!-- /fx-rack -->
 
-  <!-- KEYBOARD -->
-  <div class="kb-section">
-    <div class="kb-topbar">
-      <span class="kb-lbl">32 Key · C2–G4</span>
-      <div class="kb-ctrls">
-<div style="display:flex;align-items:center;gap:6px">
-          <span class="kb-lbl">Computer KB</span>
-          <div class="tsw on" id="tkb"></div>
-        </div>
-      </div>
-    </div>
-    <div class="keyboard" id="keyboard"></div>
-  </div>
-
 </div><!-- /synth -->
 
 <div class="footnote">Web Audio API · Huovilainen Ladder Filter · PolyBLEP VCO · 2× Oversampled</div>
@@ -885,11 +945,13 @@ import { Quadraverb  } from './quadraverb.js';
 
 // ─ State ────────────────────────────────────────────────────────
 let synth = null, audioCtx = null, midiAccess = null;
-let octave = 4, kbEnabled = true, glideOn = false, arpOn = false;
+let octave = 4, kbEnabled = true, arpOn = false;
 let pcm41Wet = null, pcm41 = null;
 let qrvWet   = null, qrv   = null;
 let limiterNode = null;
 let _meterAn = null, _meterBuf = null;
+let _lfoRateHz = 0.05 * Math.pow(600, 0.25); // matches lfo-rate slider default (value=25)
+let _lfoWaveform = 'triangle';
 let noteTimeout = null;
 const pressedKB = new Set();
 const heldMouse = new Map();
@@ -919,8 +981,36 @@ function dimNote() {
   }, 180);
 }
 
+function _lfoLedUpdate() {
+  const led = document.getElementById('lfo-led');
+  if (!led || !audioCtx) return;
+  const phase = (_lfoRateHz > 0) ? (audioCtx.currentTime * _lfoRateHz) % 1 : 0;
+  let b;
+  switch (_lfoWaveform) {
+    case 'sine':     b = (Math.sin(2 * Math.PI * phase) + 1) / 2; break;
+    case 'triangle': b = 1 - 2 * Math.abs(phase - 0.5); break;
+    case 'square':   b = phase < 0.5 ? 1 : 0.04; break;
+    case 'saw':      b = phase; break;
+    case 'sh': {
+      const step = Math.floor(audioCtx.currentTime * _lfoRateHz);
+      b = ((step * 1664525 + 1013904223) >>> 0) / 0xffffffff;
+      break;
+    }
+    default: b = 0;
+  }
+  b = Math.max(0, Math.min(1, b));
+  if (b > 0.03) {
+    led.style.background = `rgba(68,153,255,${b.toFixed(2)})`;
+    led.style.boxShadow   = `0 0 ${(b*7).toFixed(1)}px rgba(68,153,255,${(b*0.55).toFixed(2)}),0 0 ${(b*14).toFixed(1)}px rgba(68,153,255,${(b*0.25).toFixed(2)}),inset 0 1px 0 rgba(255,255,255,0.1)`;
+  } else {
+    led.style.background = 'var(--led-off)';
+    led.style.boxShadow  = 'inset 0 1px 0 rgba(255,255,255,0.1)';
+  }
+}
+
 function _meterLoop() {
   requestAnimationFrame(_meterLoop);
+  _lfoLedUpdate();
   if (!_meterAn) return;
   _meterAn.getFloatTimeDomainData(_meterBuf);
   let peak = 0;
@@ -1107,25 +1197,24 @@ function applyAll() {
   synth.set('volume',      gv('volume')/100);
   synth.set('sawLevel',    gv('saw-level')/100);
   synth.set('pulseLevel',  gv('pulse-level')/100);
-  const subMode = document.querySelector('.sbtn[data-g="sub"].on')?.dataset.v;
-  synth.set('subLevel',    subMode === 'off' ? 0 : gv('sub-level')/100);
+  synth.set('subLevel',    gv('sub-level')/100);
   synth.set('noiseLevel',  gv('noise-level')/100);
-  synth.set('pulseWidth',  gv('pulse-width')/100);
+  synth.set('pulseWidth',  Math.max(0.01, gv('pulse-width') / 200));
   synth.set('octaveShift', gv('oct-shift'));
   synth.set('fineTune',    gv('fine-tune'));
   synth.set('lfoPWMAmt',   gv('lfo-pwm')/100);
-  synth.set('lfoPitchAmt', gv('lfo-pitch')/100);
+  synth.set('lfoPitchAmt', gv('lfo-pitch') / 100 * 12);
   synth.set('lfoCutoffAmt',gv('lfo-cutoff')/100);
   synth.set('lfoRate',     lfoHz(gv('lfo-rate')/100));
-  synth.arp.setBPM(bpmVal(gv('arp-bpm')/100));
+  synth.arp.setBPM(lfoHz(gv('lfo-rate')/100) * 60);
 }
 const gv = id => parseFloat(document.getElementById(id).value);
 
 // ─ Curves ───────────────────────────────────────────────────────
 const lfoHz  = v => 0.05 * Math.pow(600, v);
 const bpmVal = v => Math.round(40 + v*220);
-const envMs  = v => Math.round(Math.pow(2000, v));
-const coDisp = v => { const hz=Math.round(20*Math.pow(900,v)); return hz>=1000?(hz/1000).toFixed(1)+'kHz':hz+'Hz'; };
+const fmtTime = s => s < 1 ? Math.round(s*1000)+'ms' : s.toFixed(2)+'s';
+const coDisp = v => { const hz=Math.round(10*Math.pow(2000,v)); return hz>=1000?(hz/1000).toFixed(1)+'kHz':hz+'Hz'; };
 
 // ─ Slider binding ───────────────────────────────────────────────
 function bindS(id, fn, dispId, fmt) {
@@ -1145,11 +1234,11 @@ function flash(id, txt) {
 }
 
 bindS('cutoff',     v=>synth.setCutoff(v),          'vco2', coDisp);
-bindS('resonance',  v=>synth.setResonance(v),        'vres', v=>(v*0.95).toFixed(2));
-bindS('attack',     v=>synth.setAttack(v),           'vatk', v=>envMs(v)+'ms');
-bindS('decay',      v=>synth.setDecay(v),            'vdcy', v=>envMs(v)+'ms');
-bindS('sustain',    v=>synth.set('sustain',v),       'vsus', v=>v.toFixed(2));
-bindS('release',    v=>synth.setRelease(v),          'vrel', v=>envMs(v)+'ms');
+bindS('resonance',  v=>synth.setResonance(v),        'vres', v=>Math.round(v*100)+'%');
+bindS('attack',     v=>synth.setAttack(v),           'vatk', v=>fmtTime(0.0015 * Math.pow(2667, v)));
+bindS('decay',      v=>synth.setDecay(v),            'vdcy', v=>fmtTime(0.002  * Math.pow(5000, v)));
+bindS('sustain',    v=>synth.set('sustain',v),       'vsus', v=>Math.round(v*100)+'%');
+bindS('release',    v=>synth.setRelease(v),          'vrel', v=>fmtTime(0.002  * Math.pow(5000, v)));
 bindS('env-mod',    v=>synth.set('envModAmt',v),     'vemod',v=>Math.round(v*100)+'%');
 bindS('key-track',  v=>synth.set('keyTracking',v),   'vktr', v=>Math.round(v*100)+'%');
 bindS('volume',     v=>synth.set('volume',v),        'vvol', v=>Math.round(v*100)+'%');
@@ -1157,14 +1246,32 @@ bindS('saw-level',   v=>synth.set('sawLevel',v),     'vsaw', v=>Math.round(v*100
 bindS('pulse-level', v=>synth.set('pulseLevel',v),   'vpls', v=>Math.round(v*100)+'%');
 document.getElementById('sub-level').addEventListener('input', function() {
   const v = parseFloat(this.value)/100;
-  const subActive = document.querySelector('.sbtn[data-g="sub"].on')?.dataset.v !== 'off';
-  if (synth && subActive) synth.set('subLevel', v);
+  if (synth) synth.set('subLevel', v);
   flash('vsubl', Math.round(v*100)+'%');
 });
 bindS('noise-level',v=>synth.set('noiseLevel',v),    'vnl',  v=>Math.round(v*100)+'%');
-bindS('pulse-width',v=>synth.set('pulseWidth',Math.max(0.01,Math.min(0.99,v))),'vpw',v=>Math.round(v*100)+'%');
+bindS('pulse-width',v=>synth.set('pulseWidth',Math.max(0.01,v*0.5)),'vpw',v=>Math.round(v*50)+'%');
+const PW_MODES  = ['env', 'man', 'lfo']; // slider value 0→env, 1→man, 2→lfo
+document.getElementById('pw-mode').addEventListener('input', function() {
+  const mode = PW_MODES[parseInt(this.value)];
+  flash('vpwmode', mode.charAt(0).toUpperCase() + mode.slice(1));
+  if (synth) synth.setPWMode(mode);
+});
+
+const SUB_MODES = ['2↓⊏', '2↓⊓', '1↓⊓']; // 0=25%pw -2oct | 1=sq -2oct | 2=sq -1oct
+document.getElementById('sub-mode').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  flash('vsubmode', SUB_MODES[v]);
+  if (synth) synth.setSubMode(v);
+});
+const ENV_MODES = ['LFO', 'Gate', 'G+Trg']; // 0=lfo | 1=gate | 2=gate+trig
+document.getElementById('env-mode').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  flash('venvmode', ENV_MODES[v]);
+  if (synth) synth.setEnvMode(v);
+});
 bindS('lfo-pwm',    v=>synth.set('lfoPWMAmt',v),     'vlpwm',v=>Math.round(v*100)+'%');
-bindS('lfo-pitch',  v=>synth.set('lfoPitchAmt',v),   'vlpit',v=>Math.round(v*100)+'%');
+bindS('lfo-pitch',  v=>synth.set('lfoPitchAmt',v*12), 'vlpit',v=>Math.round(v*100)+'%');
 document.getElementById('oct-shift').addEventListener('input', function() {
   const v = parseInt(this.value);
   if (synth) synth.set('octaveShift', v);
@@ -1176,10 +1283,16 @@ document.getElementById('fine-tune').addEventListener('input', function() {
   flash('vfine', (v >= 0 ? '+' : '') + v + '¢');
 });
 bindS('lfo-cutoff', v=>synth.set('lfoCutoffAmt',v),  'vlco', v=>Math.round(v*100)+'%');
-bindS('lfo-rate',   v=>{const h=lfoHz(v);if(synth)synth.set('lfoRate',h);},'vlrat',v=>lfoHz(v).toFixed(2)+'Hz');
-bindS('arp-bpm',    v=>{const b=bpmVal(v);if(synth)synth.arp.setBPM(b);},'vbpm',v=>bpmVal(v)+' bpm');
-bindS('glide',      v=>{if(synth&&glideOn)synth.setGlideSlider(v);},'vgl',v=>{
+bindS('lfo-rate',   v=>{const h=lfoHz(v);_lfoRateHz=h;if(synth){synth.set('lfoRate',h);synth.arp.setBPM(h*60);}},'vlrat',v=>lfoHz(v).toFixed(2)+'Hz');
+// bindS('arp-bpm', ...) — removed; arp rate synced to LFO rate slider
+bindS('glide',      v=>{if(synth)synth.setGlideSlider(v);},'vgl',v=>{
   const t=v<0.01?0:Math.round(10*Math.pow(150,v)); return t===0?'Off':t+'ms';
+});
+const PORTA_MODES = ['On', 'Off', 'Auto']; // slider: 0=On, 1=Off, 2=Auto
+document.getElementById('porta-mode').addEventListener('input', function() {
+  const v = parseInt(this.value);
+  flash('vportamode', PORTA_MODES[v]);
+  if (synth) synth.setPortaMode(v);
 });
 
 // ─ Group buttons ────────────────────────────────────────────────
@@ -1190,14 +1303,28 @@ document.querySelectorAll('.sbtn[data-g]').forEach(btn => {
     btn.classList.add('on');
     const v = btn.dataset.v;
     if (!synth) return;
-    if (g==='sub')  { synth.set('subLevel', v==='off' ? 0 : gv('sub-level')/100); }
-    if (g==='lfo-wave') synth.setLFOWaveform(v);
+    if (g==='lfo-wave') { _lfoWaveform = v; synth.setLFOWaveform(v); }
     if (g==='arp-pat')  synth.arp.setPattern(v);
     if (g==='arp-div')  synth.arp.setDivision(parseInt(v));
     if (g==='arp-oct')  synth.arp.setOctaveRange(parseInt(v));
     if (g==='vca-mode') {
-      if (v==='gate') { synth.set('attack',0.001);synth.set('release',0.001);synth.set('sustain',1);synth.set('decay',0.001); }
-      else applyAll();
+      if (synth) synth.setVCAMode(v === 'gate' ? 1 : 0);
+    }
+  });
+});
+
+// ─ Arp pattern buttons (row 2) ──────────────────────────────────
+['up','down','updown'].forEach(pat => {
+  document.getElementById('arp-btn-' + pat).addEventListener('click', function() {
+    const wasOn = this.classList.contains('on');
+    ['up','down','updown'].forEach(p => document.getElementById('arp-btn-'+p).classList.remove('on'));
+    if (wasOn) {
+      arpOn = false;
+      if (synth) synth.setArpEnabled(false);
+    } else {
+      this.classList.add('on');
+      arpOn = true;
+      if (synth) { synth.arp.setPattern(pat); synth.setArpEnabled(true); }
     }
   });
 });
@@ -1213,14 +1340,7 @@ document.getElementById('lim-sw').addEventListener('click', function() {
 });
 
 // ─ Toggles ──────────────────────────────────────────────────────
-document.getElementById('tgl').addEventListener('click', function() {
-  glideOn = !glideOn; this.classList.toggle('on', glideOn);
-  if (synth) synth.setGlideSlider(glideOn ? gv('glide')/100 : 0);
-});
-document.getElementById('tarp').addEventListener('click', function() {
-  arpOn = !arpOn; this.classList.toggle('on', arpOn);
-  if (synth) synth.setArpEnabled(arpOn);
-});
+// tarp toggle removed — arp enable/disable now driven by row-2 pattern buttons
 document.getElementById('tkb').addEventListener('click', function() {
   kbEnabled = !kbEnabled; this.classList.toggle('on', kbEnabled);
 });
@@ -1341,7 +1461,7 @@ document.getElementById('qrv-rev').addEventListener('input', function() {
 });
 
 // ─ Module Bypass Toggles ────────────────────────────────────────
-const moduleToggles = ['tvco', 'tvcf', 'tvca', 'tenv', 'tlfo'];
+const moduleToggles = ['tvco', 'tvcf', 'tvca', 'tenv'];
 moduleToggles.forEach(id => {
   document.getElementById(id).addEventListener('click', function() {
     this.classList.toggle('on');
@@ -1434,6 +1554,22 @@ document.querySelectorAll('input[type="range"].vs').forEach(el => {
     el.value = (parseFloat(el.min) + parseFloat(el.max)) / 2;
     el.dispatchEvent(new Event('input', { bubbles: true }));
   });
+});
+
+// ─ Slider scale marks ───────────────────────────────────────────
+document.querySelectorAll('.strk:not(.xs)').forEach(strk => {
+  const scale = document.createElement('div');
+  scale.className = 'sl-scale';
+  for (let i = 10; i >= 0; i--) {
+    const tick = document.createElement('div');
+    tick.className = 'sl-tick';
+    if (i === 0 || i === 5 || i === 10) {
+      tick.classList.add('sl-lbl');
+      tick.dataset.lbl = String(i);
+    }
+    scale.appendChild(tick);
+  }
+  strk.appendChild(scale);
 });
 
 buildKB();
