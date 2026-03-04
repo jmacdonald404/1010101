@@ -271,6 +271,10 @@ class SH101Processor extends AudioWorkletProcessor {
     this.envMode  = 1;    // 0 = lfo | 1 = gate | 2 = gate+trig
     this.retrigger = false;
     this.vcaMode  = 0;    // 0 = env | 1 = gate
+
+    // Slew limiter for gate-mode VCA — softens hard note-on/off edges (~2ms)
+    this.gateSmooth    = 0;
+    this.gateSlewCoeff = 1.0 - Math.exp(-1.0 / (0.002 * sampleRate));
     this.subPhase1 = 0;   // -1 oct phase (advances at dt*0.5)
     this.subPhase2 = 0;   // -2 oct phase (advances at dt*0.25)
 
@@ -440,8 +444,9 @@ class SH101Processor extends AudioWorkletProcessor {
       // VCF
       const filtered = this.moduleStates.vcf ? this.filter.process(osc, finalCutoff, res) : osc;
 
-      // VCA — env mode: ADSR controls amplitude; gate mode: raw key gate controls amplitude
-      const vcaEnv  = this.vcaMode === 1 ? gate : envOut;
+      // VCA — env mode: ADSR controls amplitude; gate mode: slewed gate (2ms ramp, no click)
+      this.gateSmooth += this.gateSlewCoeff * (gate - this.gateSmooth);
+      const vcaEnv  = this.vcaMode === 1 ? this.gateSmooth : envOut;
       const vcaLevel = this.moduleStates.vca ? (vcaEnv * volume * velocity) : 1.0;
       const finalOutput = filtered * vcaLevel;
       

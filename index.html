@@ -425,6 +425,17 @@ input[type="range"].vs::-moz-range-thumb {
   margin-top:14px; font-family:'Barlow Condensed',sans-serif; font-size:9px;
   letter-spacing:2px; color:#2a2a2c; text-transform:uppercase; text-align:center;
 }
+
+/* PATCH BANK */
+.pb-select {
+  font-family:'Barlow Condensed',sans-serif; font-size:9px; letter-spacing:1px;
+  text-transform:uppercase; color:var(--label-dim);
+  background:var(--panel-sunken); border:1px solid #111; border-radius:2px;
+  padding:3px 6px; cursor:pointer; outline:none; min-width:140px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.pb-select:focus { border-color:rgba(200,190,160,0.3); color:var(--label); }
+.pb-select option, .pb-select optgroup { background:var(--panel-dark); color:var(--label); }
 </style>
 </head>
 <body>
@@ -749,7 +760,7 @@ input[type="range"].vs::-moz-range-thumb {
 
   </div><!-- /panel -->
 
-  <!-- ROW 2: ARPEGGIO (SIMPLIFIED) -->
+  <!-- ROW 2: ARPEGGIO (SIMPLIFIED) + PATCH BANK -->
   <div class="panel" style="padding:8px 14px 6px;border-top:1px solid #252527">
     <div class="section">
       <span class="sec-title">Arpeggio</span>
@@ -757,6 +768,22 @@ input[type="range"].vs::-moz-range-thumb {
         <button class="sbtn" id="arp-btn-up"     data-pat="up">Up</button>
         <button class="sbtn" id="arp-btn-down"   data-pat="down">Down</button>
         <button class="sbtn" id="arp-btn-updown" data-pat="updown">Up / Dn</button>
+      </div>
+    </div>
+    <!-- PATCH BANK -->
+    <div class="section">
+      <span class="sec-title">Patch Bank</span>
+      <div style="display:flex;align-items:center;gap:4px;margin-top:6px">
+        <button class="sbtn" id="pb-save">Save</button>
+        <button class="sbtn" id="pb-load">Load</button>
+        <select class="pb-select" id="pb-select">
+          <option value="">— select patch —</option>
+          <optgroup label="Factory" id="pb-factory"></optgroup>
+          <optgroup label="Custom" id="pb-custom"></optgroup>
+        </select>
+        <button class="sbtn" id="pb-import">Import</button>
+        <button class="sbtn" id="pb-export">Export</button>
+        <input type="file" id="pb-file-input" accept=".json" style="display:none">
       </div>
     </div>
   </div>
@@ -1571,6 +1598,179 @@ document.querySelectorAll('.strk:not(.xs)').forEach(strk => {
   }
   strk.appendChild(scale);
 });
+
+// ─ Patch Bank ────────────────────────────────────────────────────
+const PB_STORAGE_KEY  = 'sh101_patch_bank';
+const PB_FORMAT       = 'sh101-patch-bank';
+const PB_VERSION      = 1;
+let FACTORY_PATCHES = []; // loaded from presets/factory.json at boot
+
+let _importedBanks = [];
+
+function capturePatch() {
+  const sv  = id => parseFloat(document.getElementById(id).value);
+  const iv  = id => parseInt(document.getElementById(id).value);
+  const bgv = g  => { const b = document.querySelector(`.sbtn[data-g="${g}"].on`); return b ? b.dataset.v : null; };
+  const tsw = id => document.getElementById(id).classList.contains('on');
+  return {
+    fineTune:   iv('fine-tune'),    lfoRate:     sv('lfo-rate'),
+    lfoWaveform: bgv('lfo-wave'),   lfoPitch:    sv('lfo-pitch'),
+    octaveShift: iv('oct-shift'),   pulseWidth:  sv('pulse-width'),
+    pwMode:     iv('pw-mode'),      lfoPWM:      sv('lfo-pwm'),
+    pulseLevel: sv('pulse-level'),  sawLevel:    sv('saw-level'),
+    subLevel:   sv('sub-level'),    subMode:     iv('sub-mode'),
+    noiseLevel: sv('noise-level'),  cutoff:      sv('cutoff'),
+    resonance:  sv('resonance'),    envMod:      sv('env-mod'),
+    lfoCutoff:  sv('lfo-cutoff'),   keyTrack:    sv('key-track'),
+    vcaMode:    bgv('vca-mode'),    envMode:     iv('env-mode'),
+    attack:     sv('attack'),       decay:       sv('decay'),
+    sustain:    sv('sustain'),      release:     sv('release'),
+    volume:     sv('volume'),       glide:       sv('glide'),
+    portaMode:  iv('porta-mode'),
+    vcoEnabled: tsw('tvco'),        vcfEnabled:  tsw('tvcf'),
+    vcaEnabled: tsw('tvca'),        envEnabled:  tsw('tenv'),
+  };
+}
+
+function applyPatch(s) {
+  const ss = (id, v) => { const el = document.getElementById(id); if (!el) return; el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); };
+  const sg = (grp, v) => { const b = document.querySelector(`.sbtn[data-g="${grp}"][data-v="${v}"]`); if (b) b.click(); };
+  const st = (id, on) => { const el = document.getElementById(id); if (!el) return; if (el.classList.contains('on') !== on) el.click(); };
+  ss('fine-tune',   s.fineTune);    ss('lfo-rate',    s.lfoRate);
+  if (s.lfoWaveform) sg('lfo-wave', s.lfoWaveform);
+  ss('lfo-pitch',   s.lfoPitch);    ss('oct-shift',   s.octaveShift);
+  ss('pulse-width', s.pulseWidth);  ss('pw-mode',     s.pwMode);
+  ss('lfo-pwm',     s.lfoPWM);      ss('pulse-level', s.pulseLevel);
+  ss('saw-level',   s.sawLevel);    ss('sub-level',   s.subLevel);
+  ss('sub-mode',    s.subMode);     ss('noise-level', s.noiseLevel);
+  ss('cutoff',      s.cutoff);      ss('resonance',   s.resonance);
+  ss('env-mod',     s.envMod);      ss('lfo-cutoff',  s.lfoCutoff);
+  ss('key-track',   s.keyTrack);
+  if (s.vcaMode) sg('vca-mode', s.vcaMode);
+  ss('env-mode',    s.envMode);     ss('attack',      s.attack);
+  ss('decay',       s.decay);       ss('sustain',     s.sustain);
+  ss('release',     s.release);     ss('volume',      s.volume);
+  ss('glide',       s.glide);       ss('porta-mode',  s.portaMode);
+  if (s.vcoEnabled !== undefined) st('tvco', s.vcoEnabled);
+  if (s.vcfEnabled !== undefined) st('tvcf', s.vcfEnabled);
+  if (s.vcaEnabled !== undefined) st('tvca', s.vcaEnabled);
+  if (s.envEnabled !== undefined) st('tenv', s.envEnabled);
+}
+
+function validatePatchBank(data) {
+  if (!data || typeof data !== 'object') return false;
+  if (data.format !== PB_FORMAT || !Number.isInteger(data.version)) return false;
+  if (!Array.isArray(data.patches)) return false;
+  return data.patches.every(p => p && typeof p.name === 'string' && p.name.trim() && p.settings && typeof p.settings === 'object');
+}
+
+function loadCustomFromStorage() {
+  try { const r = localStorage.getItem(PB_STORAGE_KEY); return r ? JSON.parse(r) : []; }
+  catch { return []; }
+}
+function saveCustomToStorage(patches) { localStorage.setItem(PB_STORAGE_KEY, JSON.stringify(patches)); }
+
+function populateDropdown() {
+  const sel = document.getElementById('pb-select');
+  const fg  = document.getElementById('pb-factory');
+  const cg  = document.getElementById('pb-custom');
+  fg.innerHTML = '';
+  cg.innerHTML = '';
+  sel.querySelectorAll('optgroup.pb-imported').forEach(g => g.remove());
+  FACTORY_PATCHES.forEach(p => {
+    const o = document.createElement('option'); o.value = `factory:${p.name}`; o.textContent = p.name; fg.appendChild(o);
+  });
+  loadCustomFromStorage().forEach(p => {
+    const o = document.createElement('option'); o.value = `custom:${p.name}`; o.textContent = p.name; cg.appendChild(o);
+  });
+  _importedBanks.forEach(bank => {
+    const grp = document.createElement('optgroup');
+    grp.label = bank.label; grp.className = 'pb-imported';
+    bank.patches.forEach(p => {
+      const o = document.createElement('option'); o.value = `imported:${bank.label}:${p.name}`; o.textContent = p.name; grp.appendChild(o);
+    });
+    sel.appendChild(grp);
+  });
+}
+
+document.getElementById('pb-save').addEventListener('click', () => {
+  if (!synth) { alert('Start audio first.'); return; }
+  const name = prompt('Patch name:');
+  if (!name || !name.trim()) return;
+  const nm = name.trim();
+  const patches = loadCustomFromStorage();
+  const idx = patches.findIndex(p => p.name === nm);
+  if (idx >= 0) {
+    if (!confirm(`Overwrite "${nm}"?`)) return;
+    patches[idx].settings = capturePatch();
+    patches[idx].updated  = new Date().toISOString();
+  } else {
+    patches.push({ name: nm, created: new Date().toISOString(), settings: capturePatch() });
+  }
+  saveCustomToStorage(patches);
+  populateDropdown();
+  document.getElementById('pb-select').value = `custom:${nm}`;
+});
+
+document.getElementById('pb-load').addEventListener('click', () => {
+  if (!synth) { alert('Start audio first.'); return; }
+  const val = document.getElementById('pb-select').value;
+  if (!val) return;
+  let settings = null;
+  if (val.startsWith('factory:')) {
+    const p = FACTORY_PATCHES.find(p => p.name === val.slice(8));
+    if (p) settings = p.settings;
+  } else if (val.startsWith('custom:')) {
+    const p = loadCustomFromStorage().find(p => p.name === val.slice(7));
+    if (p) settings = p.settings;
+  } else if (val.startsWith('imported:')) {
+    const rest = val.slice(9);
+    const sep  = rest.indexOf(':');
+    if (sep >= 0) {
+      const bank = _importedBanks.find(b => b.label === rest.slice(0, sep));
+      if (bank) { const p = bank.patches.find(p => p.name === rest.slice(sep + 1)); if (p) settings = p.settings; }
+    }
+  }
+  if (settings) applyPatch(settings);
+});
+
+document.getElementById('pb-export').addEventListener('click', () => {
+  const bank = { format: PB_FORMAT, version: PB_VERSION, exported: new Date().toISOString(), patches: loadCustomFromStorage() };
+  const blob = new Blob([JSON.stringify(bank, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `sh101-patches-${Date.now()}.json` });
+  a.click(); URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('pb-import').addEventListener('click', () => document.getElementById('pb-file-input').click());
+
+document.getElementById('pb-file-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    let data;
+    try { data = JSON.parse(e.target.result); } catch { alert('Invalid JSON file.'); return; }
+    if (!validatePatchBank(data)) { alert('Not a valid SH-101 patch bank file.'); return; }
+    const label = file.name.replace(/\.json$/i, '');
+    const idx = _importedBanks.findIndex(b => b.label === label);
+    if (idx >= 0) _importedBanks[idx] = { label, patches: data.patches };
+    else _importedBanks.push({ label, patches: data.patches });
+    populateDropdown();
+  };
+  reader.readAsText(file);
+  this.value = '';
+});
+
+try {
+  const _r = await fetch('./presets/factory.json');
+  if (_r.ok) {
+    const _d = await _r.json();
+    if (_d && _d.format === PB_FORMAT && Array.isArray(_d.patches))
+      FACTORY_PATCHES = _d.patches;
+  }
+} catch { /* factory file absent or unreadable — skip silently */ }
+
+populateDropdown();
 
 buildKB();
 

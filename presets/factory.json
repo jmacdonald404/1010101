@@ -1,0 +1,41 @@
+{
+  "format": "sh101-patch-bank",
+  "version": 1,
+  "patches": [{
+      "name": "roygbiv",
+      "created": "2026-03-04T01:10:43.883Z",
+      "settings": {
+        "fineTune": 18,
+        "lfoRate": 54,
+        "lfoWaveform": "triangle",
+        "lfoPitch": 0,
+        "octaveShift": 1,
+        "pulseWidth": 88,
+        "pwMode": 2,
+        "lfoPWM": 82,
+        "pulseLevel": 61,
+        "sawLevel": 0,
+        "subLevel": 89,
+        "subMode": 0,
+        "noiseLevel": 3,
+        "cutoff": 59,
+        "resonance": 11,
+        "envMod": 17,
+        "lfoCutoff": 0,
+        "keyTrack": 0,
+        "vcaMode": "gate",
+        "envMode": 2,
+        "attack": 25,
+        "decay": 36,
+        "sustain": 35,
+        "release": 0,
+        "volume": 89,
+        "glide": 18,
+        "portaMode": 0,
+        "vcoEnabled": true,
+        "vcfEnabled": true,
+        "vcaEnabled": true,
+        "envEnabled": true
+      }
+    }]
+}
