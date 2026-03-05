@@ -111,5 +111,42 @@
         "vcaEnabled": true,
         "envEnabled": true
       }
+    },
+  {
+      "name": "aegis",
+      "created": "2026-03-05T05:11:28.175Z",
+      "settings": {
+        "fineTune": 14,
+        "lfoRate": 25,
+        "lfoWaveform": "triangle",
+        "lfoPitch": 0,
+        "octaveShift": 3,
+        "pulseWidth": 47,
+        "pwMode": 1,
+        "lfoPWM": 9,
+        "pulseLevel": 0,
+        "sawLevel": 0,
+        "subLevel": 75,
+        "subMode": 2,
+        "noiseLevel": 0,
+        "cutoff": 14,
+        "resonance": 9,
+        "envMod": 49,
+        "lfoCutoff": 0,
+        "keyTrack": 51,
+        "vcaMode": "env",
+        "envMode": 2,
+        "attack": 0,
+        "decay": 34,
+        "sustain": 9,
+        "release": 40,
+        "volume": 100,
+        "glide": 0,
+        "portaMode": 1,
+        "vcoEnabled": true,
+        "vcfEnabled": true,
+        "vcaEnabled": true,
+        "envEnabled": true
+      }
     }]
 }
