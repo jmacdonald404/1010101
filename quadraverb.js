@@ -66,11 +66,78 @@ export class Quadraverb {
     if (p) p.setValueAtTime(value, this.ctx.currentTime);
   }
 
+  // Input level: linear gain 0–1 applied before the clip stage.
+  setInputLevel(v) {
+    this._inputGain.gain.setValueAtTime(v, this.ctx.currentTime);
+  }
+
+  // Output level: linear gain 0–1 on the public output node.
+  setOutputLevel(v) {
+    this.output.gain.setValueAtTime(v, this.ctx.currentTime);
+  }
+
   // Rebuild the hard-clip curve for the new drive level and hot-swap it.
   // drive=1 → 0 dB (no clipping), drive=4 → +12 dB (aggressive "Red LED").
   setDrive(drive) {
     this._clipper.curve = Quadraverb._makeClipCurve(drive);
   }
+
+  // Apply a reverb type preset by setting all worklet AudioParams at once.
+  // Types model different acoustic and digital reverb characters:
+  //
+  //  plate   — EMT 140 steel plate: immediate dense wash, bright, ~1.5 s decay
+  //  room    — small live room: short RT60, distinct echoes, coloured reflections
+  //  chamber — medium stone chamber: smooth build, moderate decay ~1 s
+  //  hall    — concert hall: long sparse tail, wide, ~3 s decay
+  //  reverse — swelling build-up: resonator sustain + near-infinite diffuse tail
+  //
+  // reverbMix=1 routes fully into the reverb tail (bypassing raw resonator output).
+  // resonatorMix controls how much of the comb bank feeds into the APF chain.
+  // feedback near 1 makes the resonator voices sustain; gate=1 keeps them open.
+  setType(type) {
+    if (!this._node) return;
+    const T = Quadraverb._TYPE_PRESETS[type];
+    if (!T) return;
+    const now = this.ctx.currentTime;
+    for (const [name, value] of Object.entries(T)) {
+      const p = this._node.parameters.get(name);
+      if (p) p.setValueAtTime(value, now);
+    }
+  }
+
+  static _TYPE_PRESETS = {
+    plate: {
+      // Dense, bright, immediate attack — no resonator colouration
+      diffusion: 0.88, density: 0.88, reverbDecay: 0.72, reverbMix: 1.0,
+      resonatorMix: 0.0, feedback: 0.82, gate: 1.0,
+      voice1Freq: 110, voice2Freq: 220, voice3Freq: 330, voice4Freq: 440, voice5Freq: 660,
+    },
+    room: {
+      // Short RT60, more discrete early reflections, slightly darker
+      diffusion: 0.42, density: 0.78, reverbDecay: 0.50, reverbMix: 1.0,
+      resonatorMix: 0.0, feedback: 0.60, gate: 1.0,
+      voice1Freq: 110, voice2Freq: 220, voice3Freq: 330, voice4Freq: 440, voice5Freq: 660,
+    },
+    chamber: {
+      // Stone chamber: smoother build than room, moderate decay ~1 s
+      diffusion: 0.65, density: 0.60, reverbDecay: 0.65, reverbMix: 1.0,
+      resonatorMix: 0.0, feedback: 0.72, gate: 1.0,
+      voice1Freq: 110, voice2Freq: 220, voice3Freq: 330, voice4Freq: 440, voice5Freq: 660,
+    },
+    hall: {
+      // Spacious: sparse long tail (long-path dominant), slow build, ~3 s decay
+      diffusion: 0.55, density: 0.22, reverbDecay: 0.92, reverbMix: 1.0,
+      resonatorMix: 0.0, feedback: 0.85, gate: 1.0,
+      voice1Freq: 110, voice2Freq: 220, voice3Freq: 330, voice4Freq: 440, voice5Freq: 660,
+    },
+    reverse: {
+      // Swelling build: high resonator feedback + near-infinite diffuse tail.
+      // Comb voices tuned to sub octaves for thick metallic swell.
+      diffusion: 0.92, density: 0.05, reverbDecay: 0.96, reverbMix: 0.70,
+      resonatorMix: 0.65, feedback: 0.96, gate: 1.0,
+      voice1Freq: 55, voice2Freq: 110, voice3Freq: 220, voice4Freq: 440, voice5Freq: 880,
+    },
+  };
 
   // Piecewise-linear hard-clip curve:
   //   |x| < 1/drive  →  y = drive · x   (linear gain zone)

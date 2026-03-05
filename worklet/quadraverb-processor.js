@@ -66,6 +66,12 @@ const APF_M2 = 211; // ~4.8 ms
 const APF_M3 = 263; // ~6.0 ms
 const APF_M4 = 347; // ~7.9 ms
 
+// ── Pre-delay buffer ─────────────────────────────────────────────
+// Sits between Phase 1 (LPF output) and Phase 2/3 (comb + APF).
+// Max 140 ms @ 44100 Hz = 6174 samples; 8192 is the next power-of-2.
+const PD_SIZE = 8192;
+const PD_MASK = PD_SIZE - 1;
+
 // ── Phase 3: Dual-path reverb tail ──────────────────────────────
 // Both delays are prime, coprime to each other (GCD = 1).
 const TAIL_S_M    = 1321; // ~29.9 ms — short/dense path
@@ -99,6 +105,14 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
       { name: 'reverbDecay',  defaultValue: 0.7,  minValue: 0,  maxValue: 0.98, automationRate: 'k-rate' },
       // reverbMix: 0 = resonated only, 1 = reverb tail only
       { name: 'reverbMix',    defaultValue: 0.0,  minValue: 0,  maxValue: 1.0,  automationRate: 'k-rate' },
+      // preDelay: time in seconds inserted between LPF and reverb body
+      { name: 'preDelay',     defaultValue: 0.0,  minValue: 0,  maxValue: 0.14, automationRate: 'k-rate' },
+      // preDelayMix: blend between undelayed (0) and delayed (1) signal into reverb
+      { name: 'preDelayMix',  defaultValue: 1.0,  minValue: 0,    maxValue: 1.0,  automationRate: 'k-rate' },
+      // hfCutoff: one-pole LPF on tail feedback — attenuates HF (20kHz = no cut)
+      { name: 'hfCutoff',     defaultValue: 20000, minValue: 500,  maxValue: 20000, automationRate: 'k-rate' },
+      // lfCutoff: one-pole HPF on tail feedback — attenuates LF (20Hz = no cut)
+      { name: 'lfCutoff',     defaultValue: 20,    minValue: 20,   maxValue: 2000,  automationRate: 'k-rate' },
     ];
   }
 
@@ -126,6 +140,16 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
     // Phase 3: dual-path reverb tail buffers + write pointers
     this._tailS = new Float32Array(TAIL_S_SIZE); this._twrS = 0;
     this._tailL = new Float32Array(TAIL_L_SIZE); this._twrL = 0;
+
+    // Phase 3: frequency-dependent decay filter states (per tail path)
+    // LPF (HF damp): one-pole low-pass applied to tail feedback
+    this._lpfS = 0.0; this._lpfL = 0.0;
+    // HPF (LF damp): one-pole high-pass; needs previous input + previous output
+    this._hpfYS = 0.0; this._hpfXS = 0.0;
+    this._hpfYL = 0.0; this._hpfXL = 0.0;
+
+    // Pre-delay ring buffer + write pointer
+    this._pdBuf = new Float32Array(PD_SIZE); this._pdWr = 0;
   }
 
   process(inputs, outputs, parameters) {
@@ -170,6 +194,25 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
     const tailS = this._tailS; let twrS = this._twrS;
     const tailL = this._tailL; let twrL = this._twrL;
 
+    // ── Frequency-dependent decay coefficients (k-rate) ──────────
+    // LPF (HF damp): y[n] = b0·x[n] + a1·y[n−1],  a1 = exp(−2π·fc/sr)
+    const lpfA1 = Math.exp(-2 * Math.PI * parameters.hfCutoff[0] / sampleRate);
+    const lpfB0 = 1 - lpfA1;
+    // HPF (LF damp): y[n] = b0·(x[n] − x[n−1]) + a1·y[n−1],  b0 = (1+a1)/2
+    const hpfA1 = Math.exp(-2 * Math.PI * parameters.lfCutoff[0] / sampleRate);
+    const hpfB0 = (1 + hpfA1) / 2;
+
+    // Local filter states
+    let lpfS = this._lpfS, lpfL = this._lpfL;
+    let hpfYS = this._hpfYS, hpfXS = this._hpfXS;
+    let hpfYL = this._hpfYL, hpfXL = this._hpfXL;
+
+    // Pre-delay (k-rate): compute integer delay in samples once per block.
+    // Clamped to [0, PD_SIZE-1] so the read pointer never aliases.
+    const pdDelaySamp = Math.min(Math.round(parameters.preDelay[0] * sampleRate), PD_SIZE - 1);
+    const pdMix       = parameters.preDelayMix[0];
+    const pdBuf = this._pdBuf; let pdWr = this._pdWr;
+
     for (let i = 0; i < out.length; i++) {
       const x = inp ? inp[i] : 0;
 
@@ -190,46 +233,54 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
       w1_2 = B1_S2 * flt1 - A1_S2 * flt + w2_2;
       w2_2 = B2_S2 * flt1 - A2_S2 * flt;
 
+      // ── Pre-delay: write flt, read pdDelaySamp samples ago ───
+      // reverbIn blends undelayed (pdMix=0) and delayed (pdMix=1) signal.
+      pdBuf[pdWr] = flt;
+      const pdRd    = (pdWr - pdDelaySamp + PD_SIZE) & PD_MASK;
+      const delayed = pdBuf[pdRd];
+      pdWr = (pdWr + 1) & PD_MASK;
+      const reverbIn = flt + pdMix * (delayed - flt);
+
       // ── Phase 2: IIR comb filter bank ────────────────────────
-      // y[n] = flt[n] + effFb·y[n−L]  — hard-clipped at ±1
+      // y[n] = reverbIn[n] + effFb·y[n−L]  — hard-clipped at ±1
       let rp1 = wr1 - L1; if (rp1 < 0) rp1 += COMB_SIZE;
       const ri1 = rp1 | 0, fr1 = rp1 - ri1;
       const yd1 = cb1[ri1 & COMB_MASK] + (cb1[(ri1+1) & COMB_MASK] - cb1[ri1 & COMB_MASK]) * fr1;
-      let yn1 = flt + effFb * yd1;
+      let yn1 = reverbIn + effFb * yd1;
       if (yn1 >  1) yn1 =  1; else if (yn1 < -1) yn1 = -1;
       cb1[wr1] = yn1;  wr1 = (wr1 + 1) & COMB_MASK;
 
       let rp2 = wr2 - L2; if (rp2 < 0) rp2 += COMB_SIZE;
       const ri2 = rp2 | 0, fr2 = rp2 - ri2;
       const yd2 = cb2[ri2 & COMB_MASK] + (cb2[(ri2+1) & COMB_MASK] - cb2[ri2 & COMB_MASK]) * fr2;
-      let yn2 = flt + effFb * yd2;
+      let yn2 = reverbIn + effFb * yd2;
       if (yn2 >  1) yn2 =  1; else if (yn2 < -1) yn2 = -1;
       cb2[wr2] = yn2;  wr2 = (wr2 + 1) & COMB_MASK;
 
       let rp3 = wr3 - L3; if (rp3 < 0) rp3 += COMB_SIZE;
       const ri3 = rp3 | 0, fr3 = rp3 - ri3;
       const yd3 = cb3[ri3 & COMB_MASK] + (cb3[(ri3+1) & COMB_MASK] - cb3[ri3 & COMB_MASK]) * fr3;
-      let yn3 = flt + effFb * yd3;
+      let yn3 = reverbIn + effFb * yd3;
       if (yn3 >  1) yn3 =  1; else if (yn3 < -1) yn3 = -1;
       cb3[wr3] = yn3;  wr3 = (wr3 + 1) & COMB_MASK;
 
       let rp4 = wr4 - L4; if (rp4 < 0) rp4 += COMB_SIZE;
       const ri4 = rp4 | 0, fr4 = rp4 - ri4;
       const yd4 = cb4[ri4 & COMB_MASK] + (cb4[(ri4+1) & COMB_MASK] - cb4[ri4 & COMB_MASK]) * fr4;
-      let yn4 = flt + effFb * yd4;
+      let yn4 = reverbIn + effFb * yd4;
       if (yn4 >  1) yn4 =  1; else if (yn4 < -1) yn4 = -1;
       cb4[wr4] = yn4;  wr4 = (wr4 + 1) & COMB_MASK;
 
       let rp5 = wr5 - L5; if (rp5 < 0) rp5 += COMB_SIZE;
       const ri5 = rp5 | 0, fr5 = rp5 - ri5;
       const yd5 = cb5[ri5 & COMB_MASK] + (cb5[(ri5+1) & COMB_MASK] - cb5[ri5 & COMB_MASK]) * fr5;
-      let yn5 = flt + effFb * yd5;
+      let yn5 = reverbIn + effFb * yd5;
       if (yn5 >  1) yn5 =  1; else if (yn5 < -1) yn5 = -1;
       cb5[wr5] = yn5;  wr5 = (wr5 + 1) & COMB_MASK;
 
       // Phase 2 crossfade output
       const combAvg  = (yn1 + yn2 + yn3 + yn4 + yn5) * 0.2;
-      const resonated = flt + mixVal * (combAvg - flt);
+      const resonated = reverbIn + mixVal * (combAvg - reverbIn);
 
       // ── Phase 3: Diffusion — 4 cascaded Schroeder APFs ───────
       // Nested-delay form (read THEN write each buffer slot):
@@ -268,16 +319,29 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
       const diffused = d4; // all-pass output is bounded (|H|=1)
 
       // ── Phase 3: Dual-path reverb tail ───────────────────────
-      // Short path: yn[n] = diffused[n] + decay·yn[n − M_SHORT]
-      const sRd = (twrS - TAIL_S_M + TAIL_S_SIZE) & TAIL_S_MASK;
-      let ynS = diffused + decayVal * tailS[sRd];
+      // Feedback signal is shaped by cascaded one-pole LPF (HF damp)
+      // then one-pole HPF (LF damp) before multiplying by decayVal.
+      //   LPF: lpf[n] = b0·fb + a1·lpf[n−1]
+      //   HPF: hpf[n] = b0·(lpf[n] − lpf[n−1]) + a1·hpf[n−1]
+
+      // Short path:
+      const sRd  = (twrS - TAIL_S_M + TAIL_S_SIZE) & TAIL_S_MASK;
+      const fbS  = tailS[sRd];
+      lpfS       = lpfB0 * fbS  + lpfA1 * lpfS;
+      hpfYS      = hpfB0 * (lpfS - hpfXS) + hpfA1 * hpfYS;
+      hpfXS      = lpfS;
+      let ynS = diffused + decayVal * hpfYS;
       if (ynS >  1) ynS =  1; else if (ynS < -1) ynS = -1;
       tailS[twrS] = ynS;
       twrS = (twrS + 1) & TAIL_S_MASK;
 
-      // Long path: yn[n] = diffused[n] + decay·yn[n − M_LONG]
-      const lRd = (twrL - TAIL_L_M + TAIL_L_SIZE) & TAIL_L_MASK;
-      let ynL = diffused + decayVal * tailL[lRd];
+      // Long path:
+      const lRd  = (twrL - TAIL_L_M + TAIL_L_SIZE) & TAIL_L_MASK;
+      const fbL  = tailL[lRd];
+      lpfL       = lpfB0 * fbL  + lpfA1 * lpfL;
+      hpfYL      = hpfB0 * (lpfL - hpfXL) + hpfA1 * hpfYL;
+      hpfXL      = lpfL;
+      let ynL = diffused + decayVal * hpfYL;
       if (ynL >  1) ynL =  1; else if (ynL < -1) ynL = -1;
       tailL[twrL] = ynL;
       twrL = (twrL + 1) & TAIL_L_MASK;
@@ -297,6 +361,10 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
     this._wr3 = wr3; this._wr4 = wr4; this._wr5 = wr5;
     this._wp1 = wp1; this._wp2 = wp2; this._wp3 = wp3; this._wp4 = wp4;
     this._twrS = twrS; this._twrL = twrL;
+    this._lpfS = lpfS; this._lpfL = lpfL;
+    this._hpfYS = hpfYS; this._hpfXS = hpfXS;
+    this._hpfYL = hpfYL; this._hpfXL = hpfXL;
+    this._pdWr = pdWr;
 
     return true;
   }
