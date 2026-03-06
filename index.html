@@ -961,6 +961,16 @@ input[type="range"].vs::-moz-range-thumb {
       </div>
     </div>
 
+    <!-- 60chorus -->
+    <div class="fx-unit">
+      <span class="fx-title">60Chorus</span>
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:stretch">
+        <button class="sbtn on" data-g="chorus60-mode" data-v="off">Off</button>
+        <button class="sbtn"    data-g="chorus60-mode" data-v="I">I</button>
+        <button class="sbtn"    data-g="chorus60-mode" data-v="II">II</button>
+      </div>
+    </div>
+
   </div><!-- /fx-rack -->
 
 </div><!-- /synth -->
@@ -971,6 +981,7 @@ input[type="range"].vs::-moz-range-thumb {
 import { SH101  } from './sh101-node.js';
 import { PCM41       } from './pcm41.js';
 import { Quadraverb  } from './quadraverb.js';
+import { Chorus60    } from './chorus60.js';
 
 // ─ State ────────────────────────────────────────────────────────
 let synth = null, audioCtx = null, midiAccess = null;
@@ -978,6 +989,7 @@ let octave = 4, kbEnabled = true, arpOn = false;
 let pcm41Wet = null, pcm41 = null;
 let qrvWet   = null, qrvDry = null, qrv = null, _qrvWetLevel = 1.0;
 let fxDry    = null;
+let chorus60 = null;
 let limiterNode = null;
 let _meterAn = null, _meterBuf = null;
 let _lfoRateHz = 0.05 * Math.pow(600, 0.25); // matches lfo-rate slider default (value=25)
@@ -1122,9 +1134,14 @@ document.getElementById('boot').addEventListener('click', async () => {
     _meterAn.smoothingTimeConstant = 0.0;
     _meterBuf = new Float32Array(_meterAn.fftSize);
 
+    // Stereo output merger: mono chain fills both channels; chorus adds true stereo
+    const stereoOut = audioCtx.createChannelMerger(2);
+    stereoOut.connect(audioCtx.destination);
+
     masterOut.connect(limiterNode);
     limiterNode.connect(_meterAn);
-    _meterAn.connect(audioCtx.destination);
+    _meterAn.connect(stereoOut, 0, 0); // mono → left
+    _meterAn.connect(stereoOut, 0, 1); // mono → right
     _meterLoop();
     synth.output.connect(fxBus);
 
@@ -1165,6 +1182,14 @@ document.getElementById('boot').addEventListener('click', async () => {
       document.getElementById(id).dispatchEvent(new Event('input'))
     );
     qrv.setType(document.getElementById('qrv-type').value);
+
+    // 60chorus — stereo wet goes directly into the stereo output merger
+    chorus60 = new Chorus60(audioCtx);
+    await chorus60.init();
+    fxBus.connect(chorus60.input);
+    chorus60.outputL.connect(stereoOut, 0, 0); // chorus left  → stereo merger left
+    chorus60.outputR.connect(stereoOut, 0, 1); // chorus right → stereo merger right
+
     console.log('[DEBUG] All parameters applied');
     setStatus('si-audio','sv-audio','red','Running','orange');
   } catch(err) {
@@ -1335,6 +1360,10 @@ document.querySelectorAll('.sbtn[data-g]').forEach(btn => {
     document.querySelectorAll(`.sbtn[data-g="${g}"]`).forEach(b=>b.classList.remove('on'));
     btn.classList.add('on');
     const v = btn.dataset.v;
+    if (g === 'chorus60-mode') {
+      if (chorus60) chorus60.setMode(v);
+      return;
+    }
     if (!synth) return;
     if (g==='lfo-wave') { _lfoWaveform = v; synth.setLFOWaveform(v); }
     if (g==='arp-pat')  synth.arp.setPattern(v);

@@ -379,9 +379,11 @@ class SH101Processor extends AudioWorkletProcessor {
         // LFO mode: gate driven by LFO phase (first half = on, second half = off)
         effectiveGate = this.lfo.phase < 0.5 ? 1 : 0;
       } else if (this.envMode === 2 && this.retrigger) {
-        // Gate+Trig: force restart from zero even if gate was already held
+        // Gate+Trig: restart attack from current value, not from zero.
+        // Zeroing value causes an instant drop → audible click through VCA/VCF.
+        // The exponential attack (value += coeff*(1.001−value)) rises smoothly
+        // from any starting level, so no discontinuity occurs.
         this.adsr.stage = 'attack';
-        this.adsr.value = 0;
         this.retrigger = false;
       }
       const envOut = this.moduleStates.env ? this.adsr.process(effectiveGate, attack, decay, sustain, release) : 1.0;
