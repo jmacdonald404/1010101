@@ -1,9 +1,9 @@
 // ════════════════════════════════════════════════════════════════
-//  Chorus60 — Roland Juno-60 BBD chorus (main-thread class)
+//  BBDChorus — BBD chorus (main-thread class)
 //
 //  Signal chain:
 //    input (public GainNode, mono)
-//      → AudioWorkletNode 'chorus60-processor'  [2-channel stereo output]
+//      → AudioWorkletNode 'bbd-chorus-processor'  [2-channel stereo output]
 //      → ChannelSplitter
 //      → outputL (public GainNode) → caller routes to stereo merger left
 //      → outputR (public GainNode) → caller routes to stereo merger right
@@ -13,7 +13,7 @@
 //  On/off and fade are handled by outputL/outputR gain.
 // ════════════════════════════════════════════════════════════════
 
-export class Chorus60 {
+export class BBDChorus {
   constructor(audioCtx) {
     this.ctx   = audioCtx;
     this._node = null;    // set by init()
@@ -28,10 +28,10 @@ export class Chorus60 {
 
   async init() {
     await this.ctx.audioWorklet.addModule(
-      './worklet/chorus60-processor.js?v=' + Date.now()
+      './worklet/bbd-chorus-processor.js?v=' + Date.now()
     );
 
-    this._node = new AudioWorkletNode(this.ctx, 'chorus60-processor', {
+    this._node = new AudioWorkletNode(this.ctx, 'bbd-chorus-processor', {
       numberOfInputs:     1,
       numberOfOutputs:    1,
       outputChannelCount: [2],   // stereo: ch0 = left, ch1 = right

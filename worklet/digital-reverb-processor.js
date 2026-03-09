@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-//  Quadraverb AudioWorkletProcessor
+//  DigitalReverb AudioWorkletProcessor
 //  Phase 1: Digital Bottleneck (16-bit quantisation + Chebyshev LPF)
 //  Phase 2: Resonator   (5-voice IIR comb filter bank + gate)
 //  Phase 3: Reverb      (4-stage APF diffusion + dual-path density tail)
@@ -53,7 +53,7 @@ const A1_S2 = -1.44918, A2_S2 = 0.57065;
 // -85 dBFS: 10^(-85/20) ≈ 5.623e-5
 // Added to each input sample BEFORE the 16-bit quantiser so the noise
 // interacts with the quantisation grid, preventing "perfect digital
-// silence" and contributing the characteristic Quadraverb background hiss.
+// silence" and contributing the characteristic background hiss.
 const NOISE_AMP = 5.623e-5;
 
 // ── Phase 2: Resonator comb geometry ────────────────────────────
@@ -82,7 +82,7 @@ const TAIL_L_M    = 3527; // ~79.97 ms — long/sparse path
 const TAIL_L_SIZE = 4096; // next power-of-2 ≥ TAIL_L_M
 const TAIL_L_MASK = TAIL_L_SIZE - 1;
 
-class QuadraverbProcessor extends AudioWorkletProcessor {
+class DigitalReverbProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
       // Phase 2 — resonator voice frequencies (Hz, log-taper in UI)
@@ -370,4 +370,4 @@ class QuadraverbProcessor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('quadraverb-processor', QuadraverbProcessor);
+registerProcessor('digital-reverb-processor', DigitalReverbProcessor);

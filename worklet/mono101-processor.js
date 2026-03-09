@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-//  SH-101 AudioWorkletProcessor — fully self-contained, no imports
+//  Mono-101 AudioWorkletProcessor — fully self-contained, no imports
 // ════════════════════════════════════════════════════════════════
 
 // ── POLYBLEP ─────────────────────────────────────────────────────
@@ -209,7 +209,7 @@ class LadderFilter {
 // ════════════════════════════════════════════════════════════════
 //  PROCESSOR
 // ════════════════════════════════════════════════════════════════
-class SH101Processor extends AudioWorkletProcessor {
+class Mono101Processor extends AudioWorkletProcessor {
 
   static get parameterDescriptors() {
     return [
@@ -241,7 +241,7 @@ class SH101Processor extends AudioWorkletProcessor {
 
   constructor() {
     super();
-    console.log('[AudioWorklet] SH101Processor constructor called, sampleRate:', sampleRate);
+    console.log('[AudioWorklet] Mono101Processor constructor called, sampleRate:', sampleRate);
     this.phase   = 0;
     this.adsr    = new ADSR(sampleRate);
     this.lfo     = new LFO(sampleRate);
@@ -261,7 +261,7 @@ class SH101Processor extends AudioWorkletProcessor {
       lfo: true
     };
 
-    // drift: slow random walk simulating CEM3340 tempco
+    // drift: slow random walk simulating analog VCO tempco
     this.driftPhase  = 0;
     this.driftTarget = 0;
     this.driftSmooth = 0;
@@ -475,4 +475,4 @@ class SH101Processor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('sh101-processor', SH101Processor);
+registerProcessor('mono101-processor', Mono101Processor);

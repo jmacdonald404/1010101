@@ -1,5 +1,5 @@
 {
-  "format": "sh101-patch-bank",
+  "format": "mono101-patch-bank",
   "version": 1,
   "patches": [{
       "name": "roygbiv",

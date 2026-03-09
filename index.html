@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Roland SH-101</title>
+<title>Mono-101 Synthesizer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700&family=Oswald:wght@300;400;500&display=swap" rel="stylesheet">
 
@@ -15,7 +15,7 @@
   --panel-dark:    #1c1c1e;
   --panel-raised:  #343436;
   --panel-sunken:  #202022;
-  --roland-red:    #c8191a;
+  --accent-red:    #c8191a;
   --cream:         #ddd8c4;
   --cream-dark:    #b8b09a;
   --silver-hi:     #d8d8d8;
@@ -65,13 +65,13 @@ html, body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 22px; height: 46px;
   background: linear-gradient(180deg, #1a1a1c 0%, #141416 100%);
-  border-bottom: 4px solid var(--roland-red);
+  border-bottom: 4px solid var(--accent-red);
   border-radius: 10px 10px 0 0; position: relative; z-index: 10;
 }
 .brand-left { display: flex; align-items: baseline; gap: 12px; }
-.brand-roland {
+.brand-name {
   font-family:'Oswald',sans-serif; font-weight:500; font-size:10px;
-  letter-spacing:6px; color:var(--roland-red); text-transform:uppercase;
+  letter-spacing:6px; color:var(--accent-red); text-transform:uppercase;
 }
 .brand-model {
   font-family:'Oswald',sans-serif; font-weight:300; font-size:28px;
@@ -109,14 +109,14 @@ html, body {
   background:var(--led-green); transition:width 0.05s ease-out;
 }
 .db-bar-fill.orange { background:#ffaa00; }
-.db-bar-fill.red    { background:var(--roland-red); }
+.db-bar-fill.red    { background:var(--accent-red); }
 .db-val {
   font-family:'Share Tech Mono',monospace; font-size:10px;
   color:var(--label-dim); min-width:40px; text-align:right; white-space:nowrap;
 }
 .db-val.green  { color:var(--led-green); }
 .db-val.orange { color:#ffaa00; }
-.db-val.red    { color:var(--roland-red); }
+.db-val.red    { color:var(--accent-red); }
 .lim-section { display:flex; align-items:center; gap:6px; }
 
 /* STATUS STRIP */
@@ -183,7 +183,7 @@ html, body {
   position:absolute; top:-8px; left:50%; transform:translateX(-50%);
   white-space:nowrap; background:var(--panel-raised); padding:0 6px; line-height:14px;
 }
-.sec-title.red  { color:var(--roland-red); }
+.sec-title.red  { color:var(--accent-red); }
 .sec-title.blue { color:var(--led-blue); }
 .sec-title.ylw  { color:#ccaa22; }
 .row { display:flex; flex-direction:row; align-items:flex-end; gap:6px; margin-top:6px; }
@@ -451,7 +451,7 @@ input[type="range"].vs::-moz-range-thumb {
 
 <div class="boot" id="boot">
   <div>
-    <h2>Roland SH-101</h2>
+    <h2>Mono-101 Synthesizer</h2>
     <p class="blink">▶ click anywhere to power on</p>
   </div>
 </div>
@@ -461,8 +461,8 @@ input[type="range"].vs::-moz-range-thumb {
   <!-- BRAND BAR -->
   <div class="brand-bar">
     <div class="brand-left">
-      <span class="brand-roland">Roland</span>
-      <div class="brand-model"><strong>SH</strong>-101</div>
+      <span class="brand-name">Mono</span>
+      <div class="brand-model"><strong>101</strong></div>
       <span class="brand-tagline">Synthesizer</span>
     </div>
     <div class="brand-right">
@@ -842,50 +842,50 @@ input[type="range"].vs::-moz-range-thumb {
   <div class="fx-rack">
     <span class="fx-rack-lbl">FX Rack</span>
 
-    <!-- PCM 41 -->
+    <!-- Digital Delay -->
     <div class="fx-unit">
-      <span class="fx-title">PCM 41</span>
-      <div class="tsw" id="pcm41-pwr" title="PCM 41 On/Off"></div>
+      <span class="fx-title">Digital Delay</span>
+      <div class="tsw" id="dd-pwr" title="Digital Delay On/Off"></div>
       <div class="tlbl">On</div>
       <div class="vdiv" style="height:50px;margin:0 4px"></div>
       <div class="sw">
         <div class="slbl">Long</div>
-        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-delay" min="0" max="100" value="82"></div>
+        <div class="strk sm"><input type="range" class="vs sm" id="dd-delay" min="0" max="100" value="82"></div>
         <div class="vtag" id="vpdly">375ms</div>
         <div class="slbl br">Delay</div>
       </div>
       <div class="sw">
         <div class="slbl">Max</div>
-        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-repeat" min="0" max="97" value="35"></div>
+        <div class="strk sm"><input type="range" class="vs sm" id="dd-repeat" min="0" max="97" value="35"></div>
         <div class="vtag" id="vprpt">35%</div>
         <div class="slbl br">Repeat</div>
       </div>
       <div class="vdiv" style="height:50px;margin:0 4px"></div>
       <div class="sw">
         <div class="slbl">Fast</div>
-        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-lfo-rate" min="0" max="100" value="44"></div>
+        <div class="strk sm"><input type="range" class="vs sm" id="dd-lfo-rate" min="0" max="100" value="44"></div>
         <div class="vtag" id="vplrate">0.50Hz</div>
         <div class="slbl br">Rate</div>
       </div>
       <div class="sw">
         <div class="slbl">Deep</div>
-        <div class="strk sm"><input type="range" class="vs sm" id="pcm41-lfo-depth" min="0" max="100" value="0"></div>
+        <div class="strk sm"><input type="range" class="vs sm" id="dd-lfo-depth" min="0" max="100" value="0"></div>
         <div class="vtag" id="vpldepth">0ms</div>
         <div class="slbl br">Depth</div>
       </div>
-      <div class="tsw" id="pcm41-lfo-shape" title="LFO Shape: Sine / Square"></div>
+      <div class="tsw" id="dd-lfo-shape" title="LFO Shape: Sine / Square"></div>
       <div class="tlbl">Square</div>
       <div class="vdiv" style="height:50px;margin:0 4px"></div>
-      <div class="tsw" id="pcm41-phase" title="Phase Invert"></div>
+      <div class="tsw" id="dd-phase" title="Phase Invert"></div>
       <div class="tlbl">ɸ Inv</div>
-      <div class="tsw" id="pcm41-hold" title="Infinite Repeat / Hold"></div>
+      <div class="tsw" id="dd-hold" title="Infinite Repeat / Hold"></div>
       <div class="tlbl">Hold</div>
     </div>
 
-    <!-- Quadraverb -->
+    <!-- Digital Reverb -->
     <div class="fx-unit">
-      <span class="fx-title">Quadraverb</span>
-      <div class="tsw" id="qrv-pwr" title="Quadraverb On/Off"></div>
+      <span class="fx-title">Digital Reverb</span>
+      <div class="tsw" id="qrv-pwr" title="Digital Reverb On/Off"></div>
       <div class="tlbl">On</div>
       <div class="vdiv" style="height:50px;margin:0 4px"></div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
@@ -961,13 +961,13 @@ input[type="range"].vs::-moz-range-thumb {
       </div>
     </div>
 
-    <!-- 60chorus -->
+    <!-- BBD Chorus -->
     <div class="fx-unit">
-      <span class="fx-title">60Chorus</span>
+      <span class="fx-title">BBD Chorus</span>
       <div style="display:flex;flex-direction:column;gap:5px;align-items:stretch">
-        <button class="sbtn on" data-g="chorus60-mode" data-v="off">Off</button>
-        <button class="sbtn"    data-g="chorus60-mode" data-v="I">I</button>
-        <button class="sbtn"    data-g="chorus60-mode" data-v="II">II</button>
+        <button class="sbtn on" data-g="bbd-chorus-mode" data-v="off">Off</button>
+        <button class="sbtn"    data-g="bbd-chorus-mode" data-v="I">I</button>
+        <button class="sbtn"    data-g="bbd-chorus-mode" data-v="II">II</button>
       </div>
     </div>
 
@@ -978,18 +978,18 @@ input[type="range"].vs::-moz-range-thumb {
 <div class="footnote">Web Audio API · Huovilainen Ladder Filter · PolyBLEP VCO · 2× Oversampled</div>
 
 <script type="module">
-import { SH101  } from './sh101-node.js';
-import { PCM41       } from './pcm41.js';
-import { Quadraverb  } from './quadraverb.js';
-import { Chorus60    } from './chorus60.js';
+import { Mono101       } from './mono101-node.js';
+import { DigitalDelay  } from './digital-delay.js';
+import { DigitalReverb } from './digital-reverb.js';
+import { BBDChorus     } from './bbd-chorus.js';
 
 // ─ State ────────────────────────────────────────────────────────
 let synth = null, audioCtx = null, midiAccess = null;
 let octave = 4, kbEnabled = true, arpOn = false;
-let pcm41Wet = null, pcm41 = null;
+let ddWet = null, ddelay = null;
 let qrvWet   = null, qrvDry = null, qrv = null, _qrvWetLevel = 1.0;
 let fxDry    = null;
-let chorus60 = null;
+let bbdChorus = null;
 let limiterNode = null;
 let _meterAn = null, _meterBuf = null;
 let _lfoRateHz = 0.05 * Math.pow(600, 0.25); // matches lfo-rate slider default (value=25)
@@ -1102,22 +1102,22 @@ document.getElementById('boot').addEventListener('click', async () => {
   };
 
   try {
-    console.log('[DEBUG] Creating SH101 instance...');
-    synth = new SH101(audioCtx);
-    console.log('[DEBUG] Initializing SH101...');
+    console.log('[DEBUG] Creating Mono101 instance...');
+    synth = new Mono101(audioCtx);
+    console.log('[DEBUG] Initializing Mono101...');
     await synth.init();
-    console.log('[DEBUG] SH101 initialized successfully');
+    console.log('[DEBUG] Mono101 initialized successfully');
     console.log('[DEBUG] AudioWorklet node:', synth.node);
     console.log('[DEBUG] Available parameters:', [...synth.node.parameters.keys()]);
     
-    // synth.onNoteOn  = (n) => { console.log('[SH101] noteOn', n); flashNote(n); };
+    // synth.onNoteOn  = (n) => { console.log('[Mono101] noteOn', n); flashNote(n); };
     synth.onNoteOn  = (n) => { flashNote(n); };
     synth.onNoteOff = ()  => dimNote();
     applyAll();
 
     // ── FX rack routing ────────────────────────────────────────
     // synth.output → fxBus ─┬─ dry gain ──────────────────────→ masterOut → destination
-    //                        └─ PCM41.input → PCM41.output → wet gain ─┘
+    //                        └─ delay.input → delay.output → wet gain ─┘
     const fxBus    = audioCtx.createGain();
     const masterOut = audioCtx.createGain();
 
@@ -1151,26 +1151,26 @@ document.getElementById('boot').addEventListener('click', async () => {
     fxBus.connect(fxDry);
     fxDry.connect(masterOut);
 
-    // Wet path — through PCM 41 signal chain (off by default)
-    pcm41Wet = audioCtx.createGain();
-    pcm41Wet.gain.value = 0;
-    pcm41 = new PCM41(audioCtx);
-    await pcm41.init();
-    fxBus.connect(pcm41.input);
-    pcm41.output.connect(pcm41Wet);
-    pcm41Wet.connect(masterOut);
+    // Wet path — through Digital Delay signal chain (off by default)
+    ddWet = audioCtx.createGain();
+    ddWet.gain.value = 0;
+    ddelay = new DigitalDelay(audioCtx);
+    await ddelay.init();
+    fxBus.connect(ddelay.input);
+    ddelay.output.connect(ddWet);
+    ddWet.connect(masterOut);
     // Sync UI sliders → worklet initial values
-    document.getElementById('pcm41-delay').dispatchEvent(new Event('input'));
-    document.getElementById('pcm41-repeat').dispatchEvent(new Event('input'));
-    document.getElementById('pcm41-lfo-rate').dispatchEvent(new Event('input'));
-    document.getElementById('pcm41-lfo-depth').dispatchEvent(new Event('input'));
+    document.getElementById('dd-delay').dispatchEvent(new Event('input'));
+    document.getElementById('dd-repeat').dispatchEvent(new Event('input'));
+    document.getElementById('dd-lfo-rate').dispatchEvent(new Event('input'));
+    document.getElementById('dd-lfo-depth').dispatchEvent(new Event('input'));
 
-    // Wet path — through Quadraverb signal chain (off by default)
+    // Wet path — through Digital Reverb signal chain (off by default)
     qrvWet = audioCtx.createGain();
     qrvWet.gain.value = 0;
     qrvDry = audioCtx.createGain();
     qrvDry.gain.value = 0;
-    qrv = new Quadraverb(audioCtx);
+    qrv = new DigitalReverb(audioCtx);
     await qrv.init();
     fxBus.connect(qrv.input);
     fxBus.connect(qrvDry);
@@ -1183,17 +1183,17 @@ document.getElementById('boot').addEventListener('click', async () => {
     );
     qrv.setType(document.getElementById('qrv-type').value);
 
-    // 60chorus — stereo wet goes directly into the stereo output merger
-    chorus60 = new Chorus60(audioCtx);
-    await chorus60.init();
-    fxBus.connect(chorus60.input);
-    chorus60.outputL.connect(stereoOut, 0, 0); // chorus left  → stereo merger left
-    chorus60.outputR.connect(stereoOut, 0, 1); // chorus right → stereo merger right
+    // BBD chorus — stereo wet goes directly into the stereo output merger
+    bbdChorus = new BBDChorus(audioCtx);
+    await bbdChorus.init();
+    fxBus.connect(bbdChorus.input);
+    bbdChorus.outputL.connect(stereoOut, 0, 0); // chorus left  → stereo merger left
+    bbdChorus.outputR.connect(stereoOut, 0, 1); // chorus right → stereo merger right
 
     console.log('[DEBUG] All parameters applied');
     setStatus('si-audio','sv-audio','red','Running','orange');
   } catch(err) {
-    console.error('SH101 init error:', err);
+    console.error('Mono101 init error:', err);
     console.error('Stack trace:', err.stack);
     setStatus('si-audio','sv-audio','','Error','dim');
     document.getElementById('sv-audio').title = err.message;
@@ -1360,8 +1360,8 @@ document.querySelectorAll('.sbtn[data-g]').forEach(btn => {
     document.querySelectorAll(`.sbtn[data-g="${g}"]`).forEach(b=>b.classList.remove('on'));
     btn.classList.add('on');
     const v = btn.dataset.v;
-    if (g === 'chorus60-mode') {
-      if (chorus60) chorus60.setMode(v);
+    if (g === 'bbd-chorus-mode') {
+      if (bbdChorus) bbdChorus.setMode(v);
       return;
     }
     if (!synth) return;
@@ -1406,50 +1406,50 @@ document.getElementById('lim-sw').addEventListener('click', function() {
 document.getElementById('tkb').addEventListener('click', function() {
   kbEnabled = !kbEnabled; this.classList.toggle('on', kbEnabled);
 });
-document.getElementById('pcm41-pwr').addEventListener('click', function() {
-  if (!pcm41Wet) return;
+document.getElementById('dd-pwr').addEventListener('click', function() {
+  if (!ddWet) return;
   this.classList.toggle('on');
   const on = this.classList.contains('on');
-  pcm41Wet.gain.setTargetAtTime(on ? 0.45 : 0, audioCtx.currentTime, 0.02);
+  ddWet.gain.setTargetAtTime(on ? 0.45 : 0, audioCtx.currentTime, 0.02);
 });
-document.getElementById('pcm41-delay').addEventListener('input', function() {
+document.getElementById('dd-delay').addEventListener('input', function() {
   const v = parseInt(this.value) / 100;
   const t = 0.002 * Math.pow(600, v);
-  if (pcm41) pcm41.set('delayTime', t);
+  if (ddelay) ddelay.set('delayTime', t);
   const ms = Math.round(t * 1000);
   document.getElementById('vpdly').textContent = ms >= 1000 ? (t).toFixed(2) + 's' : ms + 'ms';
 });
-document.getElementById('pcm41-repeat').addEventListener('input', function() {
+document.getElementById('dd-repeat').addEventListener('input', function() {
   const v = parseInt(this.value) / 100;
-  if (pcm41) pcm41.set('feedback', v);
+  if (ddelay) ddelay.set('feedback', v);
   document.getElementById('vprpt').textContent = this.value + '%';
 });
-document.getElementById('pcm41-lfo-rate').addEventListener('input', function() {
+document.getElementById('dd-lfo-rate').addEventListener('input', function() {
   const rate = 0.05 * Math.pow(200, parseInt(this.value) / 100);
-  if (pcm41) pcm41.set('lfoRate', rate);
+  if (ddelay) ddelay.set('lfoRate', rate);
   document.getElementById('vplrate').textContent =
     rate < 1 ? rate.toFixed(2) + 'Hz' : rate.toFixed(1) + 'Hz';
 });
-document.getElementById('pcm41-lfo-depth').addEventListener('input', function() {
+document.getElementById('dd-lfo-depth').addEventListener('input', function() {
   const depth = parseInt(this.value) / 100 * 0.030;
-  if (pcm41) pcm41.set('lfoDepth', depth);
+  if (ddelay) ddelay.set('lfoDepth', depth);
   document.getElementById('vpldepth').textContent = Math.round(depth * 1000) + 'ms';
 });
-document.getElementById('pcm41-lfo-shape').addEventListener('click', function() {
+document.getElementById('dd-lfo-shape').addEventListener('click', function() {
   this.classList.toggle('on');
   const shape = this.classList.contains('on') ? 'square' : 'sine';
-  if (pcm41) pcm41.setLFOShape(shape);
+  if (ddelay) ddelay.setLFOShape(shape);
 });
-document.getElementById('pcm41-phase').addEventListener('click', function() {
+document.getElementById('dd-phase').addEventListener('click', function() {
   this.classList.toggle('on');
-  if (pcm41) pcm41.setPhaseInvert(this.classList.contains('on'));
+  if (ddelay) ddelay.setPhaseInvert(this.classList.contains('on'));
 });
-document.getElementById('pcm41-hold').addEventListener('click', function() {
+document.getElementById('dd-hold').addEventListener('click', function() {
   this.classList.toggle('on');
-  if (pcm41) pcm41.setInfiniteRepeat(this.classList.contains('on'));
+  if (ddelay) ddelay.setInfiniteRepeat(this.classList.contains('on'));
 });
 
-// ─ Quadraverb ────────────────────────────────────────────────────
+// ─ Digital Reverb ─────────────────────────────────────────────────
 document.getElementById('qrv-pwr').addEventListener('click', function() {
   this.classList.toggle('on');
   const on = this.classList.contains('on');
@@ -1648,8 +1648,8 @@ document.querySelectorAll('.strk:not(.xs)').forEach(strk => {
 });
 
 // ─ Patch Bank ────────────────────────────────────────────────────
-const PB_STORAGE_KEY  = 'sh101_patch_bank';
-const PB_FORMAT       = 'sh101-patch-bank';
+const PB_STORAGE_KEY  = 'mono101_patch_bank';
+const PB_FORMAT       = 'mono101-patch-bank';
 const PB_VERSION      = 1;
 let FACTORY_PATCHES = []; // loaded from presets/factory.json at boot
 
@@ -1785,7 +1785,7 @@ document.getElementById('pb-load').addEventListener('click', () => {
 document.getElementById('pb-export').addEventListener('click', () => {
   const bank = { format: PB_FORMAT, version: PB_VERSION, exported: new Date().toISOString(), patches: loadCustomFromStorage() };
   const blob = new Blob([JSON.stringify(bank, null, 2)], { type: 'application/json' });
-  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `sh101-patches-${Date.now()}.json` });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `mono101-patches-${Date.now()}.json` });
   a.click(); URL.revokeObjectURL(a.href);
 });
 
@@ -1798,7 +1798,7 @@ document.getElementById('pb-file-input').addEventListener('change', function() {
   reader.onload = e => {
     let data;
     try { data = JSON.parse(e.target.result); } catch { alert('Invalid JSON file.'); return; }
-    if (!validatePatchBank(data)) { alert('Not a valid SH-101 patch bank file.'); return; }
+    if (!validatePatchBank(data)) { alert('Not a valid Mono-101 patch bank file.'); return; }
     const label = file.name.replace(/\.json$/i, '');
     const idx = _importedBanks.findIndex(b => b.label === label);
     if (idx >= 0) _importedBanks[idx] = { label, patches: data.patches };
