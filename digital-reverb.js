@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-//  Quadraverb — Alesis Quadraverb digital reverb emulation
+//  DigitalReverb — digital reverb emulation
 //
 //  Main-thread signal chain (left → right):
 //    input (public)
@@ -17,10 +17,10 @@
 //    effect is browser-independent (no reliance on out-of-range extrapolation).
 //
 //  index.html owns the wet/dry blend and the on/off toggle.
-//  Connect: source → quadraverb.input, quadraverb.output → wetGain → dest
+//  Connect: source → reverb.input, reverb.output → wetGain → dest
 // ════════════════════════════════════════════════════════════════
 
-export class Quadraverb {
+export class DigitalReverb {
   constructor(audioCtx) {
     this.ctx  = audioCtx;
     this._node = null; // set by init()
@@ -31,7 +31,7 @@ export class Quadraverb {
     this._inputGain.gain.value = 1.0;
 
     this._clipper = audioCtx.createWaveShaper();
-    this._clipper.curve      = Quadraverb._makeClipCurve(1.0); // unity default
+    this._clipper.curve      = DigitalReverb._makeClipCurve(1.0); // unity default
     this._clipper.oversample = '2x'; // reduce aliasing from the hard edge
 
     this._inputGain.connect(this._clipper);
@@ -44,10 +44,10 @@ export class Quadraverb {
 
   async init() {
     await this.ctx.audioWorklet.addModule(
-      './worklet/quadraverb-processor.js?v=' + Date.now()
+      './worklet/digital-reverb-processor.js?v=' + Date.now()
     );
 
-    this._node = new AudioWorkletNode(this.ctx, 'quadraverb-processor', {
+    this._node = new AudioWorkletNode(this.ctx, 'digital-reverb-processor', {
       numberOfInputs:     1,
       numberOfOutputs:    1,
       outputChannelCount: [1],
@@ -79,13 +79,13 @@ export class Quadraverb {
   // Rebuild the hard-clip curve for the new drive level and hot-swap it.
   // drive=1 → 0 dB (no clipping), drive=4 → +12 dB (aggressive "Red LED").
   setDrive(drive) {
-    this._clipper.curve = Quadraverb._makeClipCurve(drive);
+    this._clipper.curve = DigitalReverb._makeClipCurve(drive);
   }
 
   // Apply a reverb type preset by setting all worklet AudioParams at once.
   // Types model different acoustic and digital reverb characters:
   //
-  //  plate   — EMT 140 steel plate: immediate dense wash, bright, ~1.5 s decay
+  //  plate   — steel plate: immediate dense wash, bright, ~1.5 s decay
   //  room    — small live room: short RT60, distinct echoes, coloured reflections
   //  chamber — medium stone chamber: smooth build, moderate decay ~1 s
   //  hall    — concert hall: long sparse tail, wide, ~3 s decay
@@ -96,7 +96,7 @@ export class Quadraverb {
   // feedback near 1 makes the resonator voices sustain; gate=1 keeps them open.
   setType(type) {
     if (!this._node) return;
-    const T = Quadraverb._TYPE_PRESETS[type];
+    const T = DigitalReverb._TYPE_PRESETS[type];
     if (!T) return;
     const now = this.ctx.currentTime;
     for (const [name, value] of Object.entries(T)) {

@@ -1,18 +1,18 @@
-# SH-101 Web Synthesizer + FX Rack
+# Mono-101 Web Synthesizer + FX Rack
 
-A web-based clone of the classic Roland SH-101 analog synthesizer with a Lexicon PCM 41 digital delay and Alesis Quadraverb reverb/resonator emulation in an FX rack, implemented using modern HTML5, CSS3, JavaScript, and the Web Audio API.
+A web-based monophonic analog synthesizer with a digital delay and digital reverb/resonator emulation in an FX rack, implemented using modern HTML5, CSS3, JavaScript, and the Web Audio API.
 
 ## Project Overview
 
-This project recreates the iconic Roland SH-101 monophonic synthesizer entirely in the browser, featuring:
+This project recreates a classic monophonic synthesizer entirely in the browser, featuring:
 
-- **Authentic visual design** with detailed CSS styling mimicking the original hardware
+- **Authentic visual design** with detailed CSS styling mimicking vintage hardware
 - **Full synthesizer engine** running in an AudioWorklet for real-time audio processing
 - **External MIDI support** with automatic device detection and filtering
 - **Built-in arpeggiator** with multiple patterns and timing divisions
 - **Computer keyboard support** for musical input
-- **PCM 41 FX rack** — five-module Lexicon PCM 41 digital delay emulation
-- **Quadraverb FX rack** — Alesis Quadraverb reverb/resonator emulation with analog input stage
+- **Digital Delay FX rack** — five-module digital delay emulation
+- **Digital Reverb FX rack** — digital reverb/resonator emulation with analog input stage
 - **Output limiter** — brickwall DynamicsCompressor at −1 dBFS, active by default
 - **dB signal scope** — real-time peak meter with color-coded bar and readout in the brand bar
 
@@ -21,31 +21,33 @@ This project recreates the iconic Roland SH-101 monophonic synthesizer entirely 
 ### File Structure
 ```
 ├── index.html                    # Main application with UI and control logic
-├── sh101-node.js                 # Main thread synthesizer wrapper class
+├── mono101-node.js               # Main thread synthesizer wrapper class
 ├── arp.js                        # Arpeggiator implementation with Web Audio scheduling
-├── pcm41.js                      # Main thread PCM 41 wrapper (M1 front-end + M5 expander)
-├── quadraverb.js                 # Main thread Quadraverb wrapper (input stage + set/setDrive)
+├── digital-delay.js              # Main thread Digital Delay wrapper (M1 front-end + M5 expander)
+├── digital-reverb.js             # Main thread Digital Reverb wrapper (input stage + set/setDrive)
+├── bbd-chorus.js                 # Main thread BBD Chorus wrapper (stereo chorus effect)
 ├── presets/
 │   └── factory.json              # Factory patch bank — edit to add/replace factory presets
 └── worklet/
-    ├── sh101-processor.js        # AudioWorklet processor (core synthesis engine)
-    ├── pcm41-processor.js        # AudioWorklet processor (PCM 41 delay engine, M2–M5)
-    └── quadraverb-processor.js   # AudioWorklet processor (Quadraverb — all DSP phases 1–4)
+    ├── mono101-processor.js      # AudioWorklet processor (core synthesis engine)
+    ├── digital-delay-processor.js # AudioWorklet processor (Digital Delay engine, M2–M5)
+    ├── digital-reverb-processor.js # AudioWorklet processor (Digital Reverb — all DSP phases 1–4)
+    └── bbd-chorus-processor.js   # AudioWorklet processor (BBD Chorus — stereo BBD emulation)
 ```
 
 ### Signal Chain
 ```
 synth.output
-  → fxBus ─┬─ pcm41Dry (gain 1) ─────────────────────────────────────────→ masterOut
-            ├─ pcm41.input  → pcm41.output  → pcm41Wet  (default 0) ──────→ masterOut
-            └─ qrv.input    → qrv.output    → qrvWet    (default 0) ──────→ masterOut
+  → fxBus ─┬─ ddDry (gain 1) ──────────────────────────────────────────→ masterOut
+            ├─ ddelay.input  → ddelay.output  → ddWet  (default 0) ─────→ masterOut
+            └─ reverb.input  → reverb.output  → qrvWet (default 0) ─────→ masterOut
 
 masterOut → limiterNode (DynamicsCompressor) → _meterAn (AnalyserNode) → destination
 ```
 
 ### Technical Implementation
 
-**Audio Engine (worklet/sh101-processor.js)**
+**Audio Engine (worklet/mono101-processor.js)**
 - **PolyBLEP oscillators** — alias-free sawtooth and pulse; sub-oscillator via phase-locked dividers (`subPhase1` at dt×0.5, `subPhase2` at dt×0.25) with three modes (sq −1oct, sq −2oct, 25%pw −2oct)
 - **Huovilainen ladder filter** — 24 dB/oct, 2× oversampled, trapezoidal predictor-corrector; cutoff 10 Hz–20 kHz; resonance 0 to self-oscillation (k=4)
 - **ADSR envelope** — one-pole exponential coefficients; computed before VCO so envOut is available for P.Mode:Env and VCF env-mod
@@ -53,7 +55,7 @@ masterOut → limiterNode (DynamicsCompressor) → _meterAn (AnalyserNode) → d
 - **VCA modes** — ENV (ADSR controls amplitude) and GATE (slewed keyboard gate — 2 ms one-pole ramp eliminates click; ADSR still runs for VCF/PWM modulation)
 - **LFO** — sine, triangle, square, sawtooth, sample & hold; routes to pitch (0–+1 oct), pulse width, and filter cutoff (±10 kHz)
 - **Portamento/glide** — three modes: On (always), Off, Auto (legato only); logarithmic frequency slew
-- **Analog drift simulation** — mimics CEM3340 VCO temperature coefficient behaviour
+- **Analog drift simulation** — mimics analog VCO temperature coefficient behaviour
 - **Half-band decimation** — 15-tap FIR for downsampling from 2× oversampled filter
 
 **VCF modulation chain (per sample)**
@@ -66,7 +68,7 @@ cutoffBase (slider)
 ```
 
 **User Interface (index.html)**
-- Pixel-perfect recreation of SH-101 panel layout using CSS Grid and Flexbox
+- Pixel-perfect recreation of synthesizer panel layout using CSS Grid and Flexbox
 - Custom-styled vertical range sliders with cream-coloured caps
 - Slider scale marks — 11 evenly-spaced dashes (0/5/10 labelled) on all standard sliders
 - 32-key virtual keyboard (C2–G4); computer keyboard input supported
@@ -97,23 +99,28 @@ cutoffBase (slider)
 - Captures all synth settings (not FX rack) as a named patch — stored in `localStorage`
 - Save / Load / Export / Import buttons with a dropdown selector
 - Dropdown sections: Factory (loaded from `presets/factory.json` at boot) and Custom (localStorage); imported banks appear as additional optgroups for the session
-- Patch format: `sh101-patch-bank` v1 JSON — identical to the Export output, so exported files can be pasted directly into `presets/factory.json`
+- Patch format: `mono101-patch-bank` v1 JSON — identical to the Export output, so exported files can be pasted directly into `presets/factory.json`
 
-**PCM 41 FX rack (pcm41.js + worklet/pcm41-processor.js)**
-- Five-module emulation of the Lexicon PCM 41 digital delay
+**Digital Delay FX rack (digital-delay.js + worklet/digital-delay-processor.js)**
+- Five-module emulation of a digital delay
 - Signal chain: analog front-end → 12-bit ADC → variable-clock delay → LFO mod → feedback path → expander
 - Wet/dry routing via GainNodes; on/off toggle with smooth gain ramp
 
-**Quadraverb FX rack (quadraverb.js + worklet/quadraverb-processor.js)**
-- Four-phase emulation of the Alesis Quadraverb digital reverb unit
+**Digital Reverb FX rack (digital-reverb.js + worklet/digital-reverb-processor.js)**
+- Four-phase emulation of a digital reverb unit
 - Phase 1 — digital bottleneck: 16-bit non-dithered quantiser + 4th-order Chebyshev Type I LPF at 17.5 kHz
 - Phase 2 — resonator: 5-voice tuned IIR comb filter bank with master feedback gate
 - Phase 3 — reverb texture: 4-stage Schroeder APF diffusion network + dual-path (short/long) IIR tail
 - Phase 4 — analog input stage: hardware noise floor (−85 dBFS) + hard-clip WaveShaperNode with variable drive
 
+**BBD Chorus FX rack (bbd-chorus.js + worklet/bbd-chorus-processor.js)**
+- Stereo BBD chorus emulation with Mode I and Mode II
+- MN3009 256-stage BBD chip emulation with pre/post filtering
+- Triangle LFO with inverted right channel for stereo spread
+
 ## Current Status
 
-### SH-101
+### Mono-101
 
 | Module | Status | Notes |
 |---|---|---|
@@ -128,7 +135,7 @@ cutoffBase (slider)
 | Patch Bank | ✅ | Save/Load/Export/Import; Factory (presets/factory.json) + Custom (localStorage) |
 | MIDI | ✅ | Note on/off, velocity, CC mapping |
 
-### PCM 41
+### Digital Delay
 
 | Module | Status | Description |
 |---|---|---|
@@ -138,7 +145,7 @@ cutoffBase (slider)
 | M4 — LFO Modulation | ✅ | Sine / slewed-square (40 Hz) modulates delay time; depth clamped to 90% |
 | M5 — Feedback + Expander | ✅ | 12 kHz feedback LPF, phase invert, infinite hold, 1:2 expander WaveShaper |
 
-### Quadraverb
+### Digital Reverb
 
 | Phase | Status | Description |
 |---|---|---|
@@ -155,7 +162,7 @@ cutoffBase (slider)
 | dB Scope | ✅ | rAF peak meter (AnalyserNode, time domain); 72 px bar + numeric readout; three-zone colour coding |
 
 ### Notes
-- Each SH-101 section has a panel toggle switch for independent bypass (useful for debugging)
+- Each synth section has a panel toggle switch for independent bypass (useful for debugging)
 - MIDI device filtering excludes devices whose names start with 'M'
 - All DSP runs inside AudioWorklets; UI communicates via parameters and `port.postMessage`
 - `addModule()` appends `?v=<timestamp>` to all worklet URLs to prevent browser caching
@@ -164,7 +171,7 @@ cutoffBase (slider)
 
 - **Sample Rate**: 44.1 kHz with 2× oversampling in filter
 - **Latency**: Interactive latency hint for minimal audio delay
-- **Polyphony**: Monophonic (true to original SH-101)
+- **Polyphony**: Monophonic (true to original design)
 - **Oscillator**: PolyBLEP anti-aliased waveforms
 - **Filter**: 24 dB/oct Huovilainen ladder filter with analog modelling; cutoff 10 Hz–20 kHz
 - **Modulation**: LFO → Pitch (0–+1 oct), Pulse Width, Filter Cutoff (±10 kHz)
@@ -177,10 +184,10 @@ cutoffBase (slider)
 - New component in Row 2 (next to Arpeggio), flowing horizontally
 - Save: prompts for name, captures all synth settings (not FX rack), warns before overwrite, persists to `localStorage`
 - Load: applies selected patch by dispatching `input` events on all sliders/buttons
-- Export: downloads all custom patches as `sh101-patches-<timestamp>.json`
+- Export: downloads all custom patches as `mono101-patches-<timestamp>.json`
 - Import: validates format, adds patches as a per-session optgroup labelled with the filename
 - Factory presets: fetched from `presets/factory.json` at boot via top-level `await fetch()`; paste any exported file there to define factory patches
-- Patch format: `{ format: "sh101-patch-bank", version: 1, patches: [{ name, created, settings }] }`
+- Patch format: `{ format: "mono101-patch-bank", version: 1, patches: [{ name, created, settings }] }`
 
 **VCA Gate — click fix**
 - GATE mode VCA now uses a slewed gate signal (2 ms one-pole filter) rather than the raw step-function `gate` AudioParam, eliminating audible clicks on note on/off
@@ -222,7 +229,7 @@ cutoffBase (slider)
 **Portamento strip (redesigned)**
 - Section title removed; Level slider (Volume) added alongside Porta Time
 - On/Off toggle switch replaced with 3-position xs switch: Auto (legato only) / Off (default) / On (always)
-- `sh101-node.js`: `portaMode` + `_glideTime` state; `_applyGlide(isLegato)` dispatches correct glide time per mode; noteOff stack recovery always treated as legato
+- `mono101-node.js`: `portaMode` + `_glideTime` state; `_applyGlide(isLegato)` dispatches correct glide time per mode; noteOff stack recovery always treated as legato
 
 **Slider scale marks**
 - 11 equally-spaced horizontal dashes injected via JS into every standard `.strk` (non-xs)
@@ -238,7 +245,7 @@ cutoffBase (slider)
 - `AnalyserNode` (fftSize 1024) sits post-limiter; a `requestAnimationFrame` loop calls `getFloatTimeDomainData`, finds the block peak, converts to dBFS, and drives a 72 px gradient bar + numeric readout in the brand bar.
 - Colour zones: ≤ −18 dBFS green, −18 to −6 orange, above −6 red (both bar fill and text).
 
-**Quadraverb — Alesis Quadraverb FX rack module (all four phases)**
+**Digital Reverb — FX rack module (all four phases)**
 
 - **Phase 1 — Digital Bottleneck**: 16-bit non-dithered quantiser; 4th-order Chebyshev Type I LPF at 17.5 kHz (two cascaded Direct Form II transposed biquad sections).
 - **Phase 2 — Resonator**: Five independently tuned IIR comb filters; master feedback gate; each voice hard-clipped to ±1.
@@ -257,9 +264,9 @@ cutoffBase (slider)
 ---
 
 ### 2026-02-28 (session 3)
-**PCM 41 — five-module Lexicon PCM 41 digital delay emulation**
+**Digital Delay — five-module digital delay emulation**
 
-- M1 (Analog Front-End), M2 (12-bit ADC), M3 (Variable-Clock Delay), M4 (LFO Modulation), M5 (Feedback Path + Expander) — see README §PCM 41 for full details.
+- M1 (Analog Front-End), M2 (12-bit ADC), M3 (Variable-Clock Delay), M4 (LFO Modulation), M5 (Feedback Path + Expander) — see README §Digital Delay for full details.
 
 ---
 
@@ -273,4 +280,4 @@ cutoffBase (slider)
 
 ---
 
-*This is a faithful recreation of the classic Roland SH-101 synthesizer for educational and creative purposes. The original SH-101 was first released by Roland in 1982.*
+*This is a web-based monophonic synthesizer for educational and creative purposes.*

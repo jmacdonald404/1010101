@@ -1,9 +1,9 @@
 // ════════════════════════════════════════════════════════════════
-//  Chorus60 AudioWorkletProcessor
-//  Roland Juno-60 BBD chorus emulation
+//  BBDChorus AudioWorkletProcessor
+//  BBD chorus emulation
 //
 //  Hardware reference:
-//    BBD chip:   MN3009 (256-stage Panasonic/Matsushita) + MN3101 clock driver
+//    BBD chip:   MN3009 (256-stage) + MN3101 clock driver
 //    Modes:      I = 0.513 Hz triangle LFO, II = 0.863 Hz triangle LFO
 //    Delay range (both modes):
 //      left  1.540 ms – 5.150 ms  (center 3.345 ms, ±1.805 ms)
@@ -11,7 +11,7 @@
 //    Stereo:     right LFO phase-inverted vs left → opposite-direction pitch sweep
 //    Pre-filter:  1-pole LPF @ 7237 Hz (BBD input anti-aliasing)
 //    Post-filter: 1-pole LPF @ 10644 Hz (BBD output reconstruction)
-//    No feedback, no compander (Juno-60 lacks the Roland Dimension D's companding)
+//    No feedback, no compander
 //
 //  Signal path (per sample):
 //    mono input
@@ -22,7 +22,7 @@
 //      → post-filter (LPF 10644 Hz, per channel)
 //      → output channel 0 = left, output channel 1 = right
 //
-//  Sources: pendragon-andyh/Juno60 README, pendragon-andyh/junox, jpcima measurements
+//  Sources: pendragon-andyh open-source measurements, jpcima measurements
 // ════════════════════════════════════════════════════════════════
 
 // ── Pre-filter: 1-pole LPF @ 7237 Hz (fc/fs = 7237/44100) ──────
@@ -40,13 +40,13 @@ const BUF_SIZE = 512;
 const BUF_MASK = BUF_SIZE - 1;
 
 // ── Delay geometry (Modes I and II share the same range) ─────────
-// From audio measurements by jpcima and pendragon-andyh/junox source
+// From audio measurements by jpcima and pendragon-andyh open-source data
 const L_CENTER_S = 0.003345; // 3.345 ms — left center delay
 const L_OFFSET_S = 0.001805; // ±1.805 ms — left peak-to-center swing
 const R_CENTER_S = 0.003455; // 3.455 ms — right center delay (measured asymmetry)
 const R_OFFSET_S = 0.001945; // ±1.945 ms — right peak-to-center swing
 
-class Chorus60Processor extends AudioWorkletProcessor {
+class BBDChorusProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
       // lfoRate: 0 = LFO frozen (use gain nodes to silence output),
@@ -150,4 +150,4 @@ class Chorus60Processor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('chorus60-processor', Chorus60Processor);
+registerProcessor('bbd-chorus-processor', BBDChorusProcessor);

@@ -16,16 +16,16 @@ Open `http://localhost:8080` in Chrome/Firefox/Safari. Click **"Start Audio"** t
 
 ## Architecture
 
-**SH-101 signal flow:** `index.html` (UI + glue) → `sh101-node.js` (SH101 class) → `worklet/sh101-processor.js` (AudioWorkletProcessor, all DSP)
+**Mono-101 signal flow:** `index.html` (UI + glue) → `mono101-node.js` (Mono101 class) → `worklet/mono101-processor.js` (AudioWorkletProcessor, all DSP)
 
-**PCM 41 signal flow:** `index.html` (FX routing + UI) → `pcm41.js` (PCM41 class, M1 + M5 expander) → `worklet/pcm41-processor.js` (M2–M5 feedback path, AudioWorkletProcessor)
+**Digital Delay signal flow:** `index.html` (FX routing + UI) → `digital-delay.js` (DigitalDelay class, M1 + M5 expander) → `worklet/digital-delay-processor.js` (M2–M5 feedback path, AudioWorkletProcessor)
 
 ### Communication between threads
 
 - **AudioParams** (a-rate or k-rate): `frequency`, `gate`, `cutoff`, `resonance`, `pulseWidth`, `velocity`, all ADSR params, LFO params, oscillator mix levels (`sawLevel`, `pulseLevel`, `subLevel`, `noiseLevel`), `volume`, `octaveShift`, `fineTune`
 - **`port.postMessage`** (main → worklet): `lfoWaveform`, `glideTime`, `noteTarget`, `reset`, `moduleToggle`
 
-### DSP chain (per sample, in `sh101-processor.js`)
+### DSP chain (per sample, in `mono101-processor.js`)
 
 1. **Portamento** — logarithmic frequency glide + analog drift
 2. **Transpose** — `transposeRatio = 2^(octaveShift + fineTune/1200)` applied to portamento output (k-rate, computed once per block)
@@ -47,9 +47,9 @@ All `.vs` sliders support:
 
 ### AudioWorklet cache busting
 
-`sh101-node.js` appends `?v=<Date.now()>` to the `addModule()` URL. This is intentional — browsers aggressively cache worklet modules and will silently run stale code otherwise. Do not remove.
+`mono101-node.js` appends `?v=<Date.now()>` to the `addModule()` URL. This is intentional — browsers aggressively cache worklet modules and will silently run stale code otherwise. Do not remove.
 
-### Parameter tapers in `sh101-node.js`
+### Parameter tapers in `mono101-node.js`
 
 | Method | Formula |
 |---|---|
@@ -79,7 +79,7 @@ Each DSP section (VCO, VCF, VCA, ENV, LFO) can be bypassed independently via tog
 
 ### Arpeggiator (`arp.js`)
 
-Uses Chris Wilson's Web Audio lookahead scheduling technique (`_lookahead = 25ms`, `_interval = 10ms`). Patterns: `up`, `down`, `updown`, `random`. Divisions: 8, 16, 32. Supports 1–2 octave range. The arpeggiator bypasses `SH101.noteOn/noteOff` and drives `synth.node.parameters` directly for sample-accurate timing.
+Uses Chris Wilson's Web Audio lookahead scheduling technique (`_lookahead = 25ms`, `_interval = 10ms`). Patterns: `up`, `down`, `updown`, `random`. Divisions: 8, 16, 32. Supports 1–2 octave range. The arpeggiator bypasses `Mono101.noteOn/noteOff` and drives `synth.node.parameters` directly for sample-accurate timing.
 
 ### Responsive scaling (`scaleSynth()`)
 
@@ -93,16 +93,16 @@ Defined at the bottom of the inline `<script>` in `index.html`. Scales the `.syn
 
 ---
 
-## PCM 41 FX Rack
+## Digital Delay FX Rack
 
 ### File roles
 
 | File | Responsibility |
 |---|---|
-| `pcm41.js` | `PCM41` class — M1 front-end nodes, M5 expander WaveShaperNode, `init()`, public `set()` / `setLFOShape()` / `setPhaseInvert()` / `setInfiniteRepeat()` |
-| `worklet/pcm41-processor.js` | `PCM41Processor` — M2 ADC, M3 delay engine, M4 LFO, M5 feedback path (LPF + phase invert + infinite hold) |
+| `digital-delay.js` | `DigitalDelay` class — M1 front-end nodes, M5 expander WaveShaperNode, `init()`, public `set()` / `setLFOShape()` / `setPhaseInvert()` / `setInfiniteRepeat()` |
+| `worklet/digital-delay-processor.js` | `DigitalDelayProcessor` — M2 ADC, M3 delay engine, M4 LFO, M5 feedback path (LPF + phase invert + infinite hold) |
 
-### PCM 41 signal chain (per sample)
+### Digital Delay signal chain (per sample)
 
 1. **M5 feedback LPF** — one-pole at 12 kHz on `_prevOut`; optional `× −1` phase invert
 2. **M2 — 12-bit quantise** — `floor(mixIn × 2048)`, clip ±2048; skipped in infinite-hold mode
@@ -112,7 +112,7 @@ Defined at the bottom of the inline `<script>` in `index.html`. Scales the `.syn
 6. **M3 — clock-aliasing LPF** — one-pole, `fc = readSpeed × 8 kHz`
 7. **M5 expander** (main thread WaveShaperNode, post-worklet) — 1:2 expansion above −18 dBFS, clamped ±1, 2× oversample
 
-### PCM 41 AudioWorklet parameters (all k-rate)
+### Digital Delay AudioWorklet parameters (all k-rate)
 
 | Parameter | Range | Default | UI taper |
 |---|---|---|---|
@@ -122,7 +122,7 @@ Defined at the bottom of the inline `<script>` in `index.html`. Scales the `.syn
 | `lfoRate` | 0.05–10 Hz | 0.5 Hz | `0.05 × 200^(v/100)` |
 | `lfoDepth` | 0–0.030 s | 0 | linear (slider 0–100 → ×0.030) |
 
-### PCM 41 port messages (main → worklet)
+### Digital Delay port messages (main → worklet)
 
 | Message | Effect |
 |---|---|
@@ -130,24 +130,24 @@ Defined at the bottom of the inline `<script>` in `index.html`. Scales the `.syn
 | `{ type:'phaseInvert', value: bool }` | Multiply feedback by −1 |
 | `{ type:'infiniteRepeat', value: bool }` | Freeze buffer writes; loop existing content |
 
-### PCM 41 audio routing (`index.html`)
+### Digital Delay audio routing (`index.html`)
 
 ```
-synth.output → fxBus ─┬─ pcm41Dry (gain 1) ──────────────────→ masterOut → destination
-                       └─ pcm41.input → pcm41.output → pcm41Wet (gain 0→0.45) ─┘
+synth.output → fxBus ─┬─ fxDry (gain 1) ──────────────────→ masterOut → destination
+                       └─ ddelay.input → ddelay.output → ddWet (gain 0→0.45) ─┘
 ```
 
-`pcm41Wet.gain` is ramped with `setTargetAtTime(τ=0.02 s)` on toggle. PCM 41 is off by default.
+`ddWet.gain` is ramped with `setTargetAtTime(τ=0.02 s)` on toggle. Digital Delay is off by default.
 
-### PCM 41 FX unit controls
+### Digital Delay FX unit controls
 
 | Control | ID | Notes |
 |---|---|---|
-| On/Off | `pcm41-pwr` | Ramps `pcm41Wet` gain |
-| Delay | `pcm41-delay` | Log taper, displays ms / s |
-| Repeat | `pcm41-repeat` | Linear, 0–97% |
-| LFO Rate | `pcm41-lfo-rate` | Log taper |
-| LFO Depth | `pcm41-lfo-depth` | Linear, 0–30ms |
-| Sine/Square | `pcm41-lfo-shape` | tsw toggle; off=sine, on=square |
-| ɸ Inv | `pcm41-phase` | tsw toggle |
-| Hold | `pcm41-hold` | tsw toggle; freezes buffer |
+| On/Off | `dd-pwr` | Ramps `ddWet` gain |
+| Delay | `dd-delay` | Log taper, displays ms / s |
+| Repeat | `dd-repeat` | Linear, 0–97% |
+| LFO Rate | `dd-lfo-rate` | Log taper |
+| LFO Depth | `dd-lfo-depth` | Linear, 0–30ms |
+| Sine/Square | `dd-lfo-shape` | tsw toggle; off=sine, on=square |
+| ɸ Inv | `dd-phase` | tsw toggle |
+| Hold | `dd-hold` | tsw toggle; freezes buffer |

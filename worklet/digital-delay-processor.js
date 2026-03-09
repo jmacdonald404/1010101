@@ -1,10 +1,10 @@
 // ════════════════════════════════════════════════════════════════
-//  PCM 41 AudioWorkletProcessor
+//  Digital Delay AudioWorkletProcessor
 //  Module 2: 12-bit quantisation
 //  Module 3: Variable-clock delay engine
 //  Module 4: LFO modulation (sine / slewed square)
 //  Module 5: Feedback path LPF + phase invert + infinite repeat
-//            (expander WaveShaperNode lives in pcm41.js, post-worklet)
+//            (expander WaveShaperNode lives in digital-delay.js, post-worklet)
 //
 //  M2–M5 share one worklet because the ADC, delay RAM, and feedback
 //  path are tightly coupled and require sample-accurate timing.
@@ -47,7 +47,7 @@
 const BUF_SIZE = 65536; // 2^16
 const BUF_MASK = BUF_SIZE - 1;
 
-class PCM41Processor extends AudioWorkletProcessor {
+class DigitalDelayProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
       { name:'delayTime', defaultValue:0.375, minValue:0.002, maxValue:1.4,   automationRate:'k-rate' },
@@ -190,4 +190,4 @@ class PCM41Processor extends AudioWorkletProcessor {
   }
 }
 
-registerProcessor('pcm41-processor', PCM41Processor);
+registerProcessor('digital-delay-processor', DigitalDelayProcessor);

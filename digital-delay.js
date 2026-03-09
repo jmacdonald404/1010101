@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-//  PCM41 — Lexicon PCM 41 digital delay emulation
+//  DigitalDelay — digital delay emulation
 //  Modular build — one module per session
 //
 //  Signal chain (internal):
@@ -12,14 +12,14 @@
 //    output
 //
 //  Note: M2–M5 (feedback path) live in the same AudioWorkletProcessor
-//  (worklet/pcm41-processor.js) for sample accuracy. The M5 expander
-//  WaveShaperNode sits on the main thread, post-worklet.
+//  (worklet/digital-delay-processor.js) for sample accuracy. The M5
+//  expander WaveShaperNode sits on the main thread, post-worklet.
 //
 //  index.html owns the wet/dry blend and the on/off toggle.
-//  Connect: source → pcm41.input, pcm41.output → wetGain → dest
+//  Connect: source → delay.input, delay.output → wetGain → dest
 // ════════════════════════════════════════════════════════════════
 
-export class PCM41 {
+export class DigitalDelay {
   constructor(audioCtx) {
     this.ctx = audioCtx;
     this._quantizer = null; // set by init()
@@ -55,7 +55,7 @@ export class PCM41 {
     // effectively linear. Saturation becomes audible only when
     // hot signals hit the front end, exactly as on the hardware.
     this._clipper = ctx.createWaveShaper();
-    this._clipper.curve = PCM41._makeClipCurve(2.5);
+    this._clipper.curve = DigitalDelay._makeClipCurve(2.5);
     this._clipper.oversample = '4x';
 
     // Compressor — replicates the compander's input half.
@@ -73,11 +73,11 @@ export class PCM41 {
 
   async init() {
     await this.ctx.audioWorklet.addModule(
-      './worklet/pcm41-processor.js?v=' + Date.now()
+      './worklet/digital-delay-processor.js?v=' + Date.now()
     );
 
     // Combined M2–M5 worklet node
-    this._quantizer = new AudioWorkletNode(this.ctx, 'pcm41-processor', {
+    this._quantizer = new AudioWorkletNode(this.ctx, 'digital-delay-processor', {
       numberOfInputs:     1,
       numberOfOutputs:    1,
       outputChannelCount: [1],
@@ -87,7 +87,7 @@ export class PCM41 {
     // 1:2 expansion above −18 dBFS restores the dynamic range that
     // the compander compressed on the way in.
     this._expander = this.ctx.createWaveShaper();
-    this._expander.curve = PCM41._makeExpandCurve();
+    this._expander.curve = DigitalDelay._makeExpandCurve();
     this._expander.oversample = '2x';
 
     // Complete the chain: M1 → M2-M5 worklet → expander → output

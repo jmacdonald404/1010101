@@ -1,9 +1,9 @@
 // ════════════════════════════════════════════════════════════════
-//  SH101Node — main-thread wrapper
+//  Mono101Node — main-thread wrapper
 // ════════════════════════════════════════════════════════════════
 import { Arpeggiator } from './arp.js';
 
-export class SH101 {
+export class Mono101 {
   constructor(audioCtx) {
     this.ctx  = audioCtx;
     this.node   = null;
@@ -20,24 +20,24 @@ export class SH101 {
   }
 
   async init() {
-    console.log('[SH101] Loading AudioWorklet module...');
-    await this.ctx.audioWorklet.addModule('./worklet/sh101-processor.js?v=' + Date.now());
-    console.log('[SH101] AudioWorklet module loaded successfully');
+    console.log('[Mono101] Loading AudioWorklet module...');
+    await this.ctx.audioWorklet.addModule('./worklet/mono101-processor.js?v=' + Date.now());
+    console.log('[Mono101] AudioWorklet module loaded successfully');
 
-    console.log('[SH101] Creating AudioWorkletNode...');
-    this.node = new AudioWorkletNode(this.ctx, 'sh101-processor', {
+    console.log('[Mono101] Creating AudioWorkletNode...');
+    this.node = new AudioWorkletNode(this.ctx, 'mono101-processor', {
       numberOfInputs:     0,
       numberOfOutputs:    1,
       outputChannelCount: [1],
     });
-    console.log('[SH101] AudioWorkletNode created:', this.node);
+    console.log('[Mono101] AudioWorkletNode created:', this.node);
 
     this.output = this.ctx.createGain();
     this.node.connect(this.output);
 
-    console.log('[SH101] Creating arpeggiator...');
+    console.log('[Mono101] Creating arpeggiator...');
     this.arp = new Arpeggiator(this.ctx, this);
-    console.log('[SH101] Arpeggiator created');
+    console.log('[Mono101] Arpeggiator created');
 
     return this;
   }
@@ -139,7 +139,7 @@ export class SH101 {
     else this.setGlideTime(this._glideTime);         // On/Auto: apply current time
   }
 
-  // ── SLIDER CURVE HELPERS (matching 101 panel tapers) ─────────
+  // ── SLIDER CURVE HELPERS (matching panel tapers) ─────────────
   setCutoff(v)    { this.set('cutoff',    10 * Math.pow(2000, v)); }
   setResonance(v) { this.set('resonance', v); }
   setAttack(v)    { this.set('attack',    0.0015 * Math.pow(2667, v)); }  // 1.5ms – 4s
